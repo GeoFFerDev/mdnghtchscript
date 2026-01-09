@@ -1,5 +1,5 @@
--- [[ JOSEPEDOV4: GHOST EDITION (MINIMIZEABLE) ]] --
--- Features: Ghost Traffic (No Collide), Limit Breaker Speed, UI with Minimize
+-- [[ JOSEPEDOV4: VOID EDITION ]] --
+-- Features: Banished Traffic (Empty Road), Limit Breaker Speed, Minimized UI
 -- Optimized for Delta
 
 local Players = game:GetService("Players")
@@ -10,7 +10,7 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     SpeedEnabled = false,
-    GhostMode = false,    -- Traffic Collision
+    GhostMode = false,    -- Now "Banish Mode"
     TargetSpeed = 400,    -- Max Speed (MPH)
     AccelPower = 2,       -- Acceleration
     BrakePower = 0.9      -- Braking Strength
@@ -29,7 +29,7 @@ MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- You can drag the menu
+MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
@@ -40,13 +40,13 @@ UICorner.Parent = MainFrame
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Name = "OpenBtn"
 OpenBtn.Size = UDim2.new(0, 50, 0, 50)
-OpenBtn.Position = UDim2.new(0, 10, 0.4, 0) -- Left side of screen
+OpenBtn.Position = UDim2.new(0, 10, 0.4, 0) -- Left side
 OpenBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 255) -- Cyan
 OpenBtn.Text = "J4"
 OpenBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 OpenBtn.Font = Enum.Font.GothamBlack
 OpenBtn.TextSize = 18
-OpenBtn.Visible = false -- Hidden at start
+OpenBtn.Visible = false 
 OpenBtn.Parent = ScreenGui
 Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 12)
 
@@ -80,6 +80,7 @@ SpeedBtn.MouseButton1Click:Connect(function()
     else
         SpeedBtn.Text = "Speed Hack: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        -- Cleanup Speed
         local char = player.Character
         if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
             if char.Humanoid.SeatPart:FindFirstChild("LimitBreaker") then
@@ -89,7 +90,7 @@ SpeedBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [TOGGLE] GHOST TRAFFIC
+-- [TOGGLE] BANISH TRAFFIC (Void Mode)
 local GhostBtn = Instance.new("TextButton")
 GhostBtn.Size = UDim2.new(0.9, 0, 0, 40)
 GhostBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
@@ -123,13 +124,11 @@ MinBtn.Font = Enum.Font.GothamBlack
 MinBtn.TextSize = 24
 MinBtn.Parent = MainFrame
 
--- Minimize Logic
 MinBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
     OpenBtn.Visible = true
 end)
 
--- Restore Logic
 OpenBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = true
     OpenBtn.Visible = false
@@ -150,7 +149,8 @@ CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- === GHOST TRAFFIC LOGIC ===
+-- === BANISH TRAFFIC LOGIC (VOID METHOD) ===
+-- Instead of changing collision (which fails), we just move them underground.
 RunService.Stepped:Connect(function()
     if not Config.GhostMode then return end
     
@@ -160,17 +160,25 @@ RunService.Stepped:Connect(function()
         myCar = char.Humanoid.SeatPart.Parent
     end
 
+    -- Scans for known traffic folders
     local trafficFolders = {Workspace:FindFirstChild("NPC vehicles"), Workspace:FindFirstChild("Traffic"), Workspace:FindFirstChild("Vehicles")}
     
     for _, folder in pairs(trafficFolders) do
         if folder then
             for _, car in pairs(folder:GetChildren()) do
-                if car ~= myCar then
-                    for _, part in pairs(car:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                            if part.Transparency < 0.5 then
-                                part.Transparency = 0.6
+                -- Ensure we don't banish our own car
+                if car ~= myCar and car:IsA("Model") then
+                    local primary = car.PrimaryPart or car:FindFirstChild("Body") or car:FindFirstChild("DriveSeat")
+                    
+                    if primary then
+                        -- TELEPORT THEM UNDERGROUND
+                        -- We lock them to Y = -500 so they fall out of the world visually
+                        -- We use Anchored = true so they don't try to drive back up
+                        for _, part in pairs(car:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.Anchored = true
+                                part.CanCollide = false 
+                                part.CFrame = CFrame.new(part.Position.X, -500, part.Position.Z)
                             end
                         end
                     end
