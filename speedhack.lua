@@ -1,19 +1,19 @@
--- [[ JOSEPEDOV4: UNIVERSAL GHOST ]] --
--- Features: Seat-Based Detection (No Folder Guessing), Limit Breaker, Minimize
+-- [[ JOSEPEDOV4: PATHFINDER EDITION ]] --
+-- Features: Exact Path Ghosting (Based on your Dex findings), Limit Breaker, Minimize
 -- Optimized for Delta
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
 -- === CONFIGURATION ===
 local Config = {
     SpeedEnabled = false,
-    GhostMode = false,    -- Banish Traffic
-    TargetSpeed = 400,    -- Max Speed (MPH)
-    AccelPower = 2,       -- Acceleration
-    BrakePower = 0.9      -- Braking Strength
+    GhostEnabled = false,
+    TargetSpeed = 400,
+    AccelPower = 2,
+    BrakePower = 0.9
 }
 
 -- === UI CREATION ===
@@ -101,14 +101,65 @@ GhostBtn.TextSize = 14
 GhostBtn.Parent = MainFrame
 Instance.new("UICorner", GhostBtn).CornerRadius = UDim.new(0, 6)
 
+-- === EXACT PATH LOGIC ===
+-- This targets: Workspace > NPC vehicles > Vehicles > [Numbers] > Part > Car
+local function GhostSpecificCar(carModel)
+    if not carModel then return end
+    
+    -- Loop through all parts inside the car model
+    for _, part in pairs(carModel:GetDescendants()) do
+        if part:IsA("BasePart") or part:IsA("MeshPart") or part:IsA("Part") then
+            -- Force Collision OFF based on the checkboxes you saw
+            part.CanCollide = false
+            part.CanTouch = false
+            part.CanQuery = false
+            
+            -- Make transparent so you know it worked
+            if part.Transparency < 0.5 then
+                part.Transparency = 0.8
+            end
+        end
+    end
+end
+
+-- The main loop that finds the specific folder
+local function ApplyGhosting()
+    local npcRoot = Workspace:FindFirstChild("NPC vehicles")
+    if npcRoot then
+        local vehiclesFolder = npcRoot:FindFirstChild("Vehicles")
+        if vehiclesFolder then
+            -- Iterate through the Numbered Folders
+            for _, numberFolder in pairs(vehiclesFolder:GetChildren()) do
+                -- Inside the numbered folder, you said there is a "Part" or "Car"
+                -- We will just ghost EVERYTHING inside that number folder to be safe
+                GhostSpecificCar(numberFolder)
+            end
+        end
+    end
+end
+
 GhostBtn.MouseButton1Click:Connect(function()
-    Config.GhostMode = not Config.GhostMode
-    if Config.GhostMode then
+    Config.GhostEnabled = not Config.GhostEnabled
+    if Config.GhostEnabled then
         GhostBtn.Text = "Ghost Traffic: ON 👻"
         GhostBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+        ApplyGhosting() -- Run once immediately
     else
         GhostBtn.Text = "Ghost Traffic: OFF"
         GhostBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    end
+end)
+
+-- Listener for NEW cars spawning in that specific folder
+Workspace.DescendantAdded:Connect(function(descendant)
+    if Config.GhostEnabled then
+        -- Check if the new object is inside "NPC vehicles"
+        if descendant:IsDescendantOf(Workspace:FindFirstChild("NPC vehicles")) then
+            if descendant:IsA("Model") or descendant:IsA("Folder") then
+                task.wait(0.1) -- Wait for parts to load
+                GhostSpecificCar(descendant)
+            end
+        end
     end
 end)
 
@@ -138,54 +189,6 @@ CloseBtn.TextSize = 18
 CloseBtn.Parent = MainFrame
 
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
--- === UNIVERSAL GHOST LOGIC (SEAT SCANNER) ===
--- We scan for seats, not folder names. This is much harder for the game to hide.
-RunService.Stepped:Connect(function()
-    if not Config.GhostMode then return end
-    
-    local myChar = player.Character
-    local mySeat = nil
-    if myChar and myChar:FindFirstChild("Humanoid") then
-        mySeat = myChar.Humanoid.SeatPart
-    end
-
-    -- Loop through EVERYTHING in Workspace to find seats
-    -- Note: We use GetDescendants() but filtered for performance
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("VehicleSeat") or obj:IsA("Seat") then
-            -- FOUND A CAR SEAT
-            local carModel = obj:FindFirstAncestorWhichIsA("Model")
-            
-            if carModel then
-                -- CHECK: Is this OUR car?
-                local isMine = false
-                if mySeat and (mySeat == obj or mySeat:IsDescendantOf(carModel)) then
-                    isMine = true
-                end
-                
-                -- If it's NOT our car, BANISH IT
-                if not isMine then
-                    -- Double check it's actually a vehicle (has wheels or engine)
-                    if carModel:FindFirstChild("Wheels") or carModel:FindFirstChild("A-Chassis Tune") or carModel.Name:lower():match("car") or carModel.Name:lower():match("traffic") then
-                        
-                        -- Banish Logic: Anchor and Teleport Underground
-                        for _, part in pairs(carModel:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                part.CanCollide = false
-                                part.Anchored = true
-                                -- Only move it if it's not already underground
-                                if part.Position.Y > -100 then
-                                    part.CFrame = CFrame.new(part.Position.X, -500, part.Position.Z)
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
 
 -- === SPEED LOOP ===
 RunService.Heartbeat:Connect(function()
