@@ -1,5 +1,5 @@
--- [[ JOSEPEDOV9: CFrame Speed ]] --
--- Features: Position-Based Speed (Bypasses Velocity Limits), Traffic Jammer, UI
+-- [[ JOSEPEDOV10: TORQUE LORD ]] --
+-- Features: Wheel Spin Hack (Bypasses A-Chassis Limits), Traffic Jammer, UI
 -- Optimized for Delta
 
 local Players = game:GetService("Players")
@@ -12,7 +12,8 @@ local player = Players.LocalPlayer
 local Config = {
     SpeedEnabled = false,
     TrafficBlocked = false,
-    SpeedPower = 1, -- Studs per frame (Start small!)
+    SpinSpeed = 200,    -- Rotation Speed (Higher = Faster)
+    TorquePower = 10000 -- Force Strength
 }
 
 -- === TRAFFIC JAMMER (HOOK) ===
@@ -34,14 +35,14 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV9_UI"
+ScreenGui.Name = "JOSEPEDOV10_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 220, 0, 180) 
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 10, 30) -- Deep Purple Theme
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true 
@@ -56,9 +57,9 @@ local OpenBtn = Instance.new("TextButton")
 OpenBtn.Name = "OpenBtn"
 OpenBtn.Size = UDim2.new(0, 50, 0, 50)
 OpenBtn.Position = UDim2.new(0, 10, 0.4, 0)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100) -- Matrix Green
-OpenBtn.Text = "J9"
-OpenBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+OpenBtn.Text = "J10"
+OpenBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 OpenBtn.Font = Enum.Font.GothamBlack
 OpenBtn.TextSize = 18
 OpenBtn.Visible = false 
@@ -67,20 +68,20 @@ Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 12)
 
 -- Title
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV9"
+Title.Text = "JOSEPEDOV10"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 255, 100)
+Title.TextColor3 = Color3.fromRGB(170, 0, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
 
--- [TOGGLE] CFRAME SPEED (The Bypass)
+-- [TOGGLE] SPEED HACK (Wheel Spin)
 local SpeedBtn = Instance.new("TextButton")
 SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
 SpeedBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
 SpeedBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-SpeedBtn.Text = "CFrame Speed: OFF"
+SpeedBtn.Text = "Speed Hack: OFF"
 SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SpeedBtn.Font = Enum.Font.GothamBold
 SpeedBtn.TextSize = 14
@@ -90,11 +91,32 @@ Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
 SpeedBtn.MouseButton1Click:Connect(function()
     Config.SpeedEnabled = not Config.SpeedEnabled
     if Config.SpeedEnabled then
-        SpeedBtn.Text = "CFrame Speed: ON"
+        SpeedBtn.Text = "Speed Hack: ON"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50) 
+        
+        -- Try to Force Attributes immediately (One time boost)
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
+            local car = char.Humanoid.SeatPart.Parent
+            local carVal = car:FindFirstChild("Car") and car.Car.Value or car
+            if carVal then
+                carVal:SetAttribute("MaxBoost", 5000)
+                carVal:SetAttribute("Torque", 5000)
+                carVal:SetAttribute("MaxSpeed", 500)
+            end
+        end
+        
     else
-        SpeedBtn.Text = "CFrame Speed: OFF"
+        SpeedBtn.Text = "Speed Hack: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        -- Cleanup Spinners
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
+            local car = char.Humanoid.SeatPart.Parent
+            for _, part in pairs(car:GetDescendants()) do
+                if part.Name == "J10_Spinner" then part:Destroy() end
+            end
+        end
     end
 end)
 
@@ -115,7 +137,6 @@ TrafficBtn.MouseButton1Click:Connect(function()
     if Config.TrafficBlocked then
         TrafficBtn.Text = "Traffic: BLOCKED 🚫"
         TrafficBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        -- Clear cars
         local npcFolder = Workspace:FindFirstChild("NPCVehicles") or Workspace:FindFirstChild("Traffic") or Workspace:FindFirstChild("NPC vehicles")
         if npcFolder then npcFolder:ClearAllChildren() end
     else
@@ -149,8 +170,7 @@ CloseBtn.TextSize = 18
 CloseBtn.Parent = MainFrame
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === CFRAME SPEED LOOP ===
--- This moves the car by changing its Position, ignoring Physics limits.
+-- === WHEEL SPIN LOGIC ===
 RunService.Heartbeat:Connect(function()
     if not Config.SpeedEnabled then return end
     
@@ -162,19 +182,49 @@ RunService.Heartbeat:Connect(function()
     local seat = humanoid.SeatPart
     local car = seat.Parent
     
-    -- Only boost if holding Gas (Throttle > 0)
+    -- Find Wheels (A-Chassis usually names them FL, FR, RL, RR)
+    -- Or puts them in a "Wheels" folder
+    local wheelsFolder = car:FindFirstChild("Wheels")
+    local wheels = {}
+    
+    if wheelsFolder then
+        wheels = wheelsFolder:GetChildren()
+    else
+        -- Fallback: Search for any part named like a wheel
+        for _, part in pairs(car:GetChildren()) do
+            if part.Name:match("Wheel") or part.Name == "FL" or part.Name == "FR" or part.Name == "RL" or part.Name == "RR" then
+                table.insert(wheels, part)
+            end
+        end
+    end
+    
     if seat.Throttle > 0 then
-        -- Get the direction the car is facing
-        local lookDirection = seat.CFrame.LookVector
-        
-        -- Teleport slightly forward
-        -- We use TranslateBy to move relative to world
-        local rootPart = car.PrimaryPart or seat
-        if rootPart then
-            rootPart.CFrame = rootPart.CFrame + (lookDirection * Config.SpeedPower)
-            
-            -- Optional: Set velocity to max allowed to keep sound engine working
-            rootPart.AssemblyLinearVelocity = lookDirection * 100
+        -- SPIN THE WHEELS
+        for _, wheel in pairs(wheels) do
+            if wheel:IsA("BasePart") then
+                local spinner = wheel:FindFirstChild("J10_Spinner")
+                
+                if not spinner then
+                    spinner = Instance.new("AngularVelocity")
+                    spinner.Name = "J10_Spinner"
+                    spinner.Attachment0 = wheel:FindFirstChild("Attachment") or Instance.new("Attachment", wheel)
+                    spinner.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+                    spinner.MaxTorque = Config.TorquePower
+                    spinner.Parent = wheel
+                end
+                
+                -- Force Rotation on the X-Axis (usually forward for wheels)
+                -- We spin it negatively or positively depending on car orientation
+                -- Try changing 1 to -1 if car goes backwards
+                spinner.AngularVelocity = Vector3.new(Config.SpinSpeed, 0, 0) 
+            end
+        end
+    else
+        -- Remove Spinners when not gas
+        for _, wheel in pairs(wheels) do
+            if wheel:FindFirstChild("J10_Spinner") then
+                wheel.J10_Spinner:Destroy()
+            end
         end
     end
 end)
