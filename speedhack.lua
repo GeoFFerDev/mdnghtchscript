@@ -1,5 +1,5 @@
--- [[ JOSEPEDOV5: ATTRIBUTE EDITION ]] --
--- Features: Attribute Modding (Based on Decompiled Code), Limit Breaker Speed, Minimized UI
+-- [[ JOSEPEDOV6: EVENT OVERRIDE ]] --
+-- Features: Internal Tune Event Hijack, Limit Breaker V2, Minimized UI
 -- Optimized for Delta
 
 local Players = game:GetService("Players")
@@ -11,21 +11,21 @@ local player = Players.LocalPlayer
 local Config = {
     SpeedEnabled = false,
     TargetSpeed = 400,    -- Max Speed (MPH)
-    AccelPower = 3,       -- Acceleration (Increased for V5)
+    AccelPower = 3,       -- Acceleration
     BrakePower = 0.8
 }
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV5_UI"
+ScreenGui.Name = "JOSEPEDOV6_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 200) -- Smaller since we removed Traffic
+MainFrame.Size = UDim2.new(0, 220, 0, 180) -- Compact
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true 
@@ -40,9 +40,9 @@ local OpenBtn = Instance.new("TextButton")
 OpenBtn.Name = "OpenBtn"
 OpenBtn.Size = UDim2.new(0, 50, 0, 50)
 OpenBtn.Position = UDim2.new(0, 10, 0.4, 0)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-OpenBtn.Text = "J5"
-OpenBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 255) -- Magenta
+OpenBtn.Text = "J6"
+OpenBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 OpenBtn.Font = Enum.Font.GothamBlack
 OpenBtn.TextSize = 18
 OpenBtn.Visible = false 
@@ -51,20 +51,20 @@ Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 12)
 
 -- Title
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV5"
+Title.Text = "JOSEPEDOV6"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 255, 255)
+Title.TextColor3 = Color3.fromRGB(255, 0, 255) -- Magenta Theme
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
 
--- [TOGGLE] SPEED HACK (Physics)
+-- [TOGGLE] PHYSICS SPEED (Backup)
 local SpeedBtn = Instance.new("TextButton")
 SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
 SpeedBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
 SpeedBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-SpeedBtn.Text = "Speed Hack: OFF"
+SpeedBtn.Text = "Force Speed: OFF"
 SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SpeedBtn.Font = Enum.Font.GothamBold
 SpeedBtn.TextSize = 14
@@ -74,10 +74,10 @@ Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
 SpeedBtn.MouseButton1Click:Connect(function()
     Config.SpeedEnabled = not Config.SpeedEnabled
     if Config.SpeedEnabled then
-        SpeedBtn.Text = "Speed Hack: ON"
+        SpeedBtn.Text = "Force Speed: ON"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50) 
     else
-        SpeedBtn.Text = "Speed Hack: OFF"
+        SpeedBtn.Text = "Force Speed: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         local char = player.Character
         if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
@@ -88,61 +88,73 @@ SpeedBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [BUTTON] UPGRADE ENGINE (New Attribute Hack)
-local UpgradeBtn = Instance.new("TextButton")
-UpgradeBtn.Size = UDim2.new(0.9, 0, 0, 40)
-UpgradeBtn.Position = UDim2.new(0.05, 0, 0.50, 0)
-UpgradeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0) -- Orange
-UpgradeBtn.Text = "⚡ Upgrade Attributes"
-UpgradeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-UpgradeBtn.Font = Enum.Font.GothamBold
-UpgradeBtn.TextSize = 14
-UpgradeBtn.Parent = MainFrame
-Instance.new("UICorner", UpgradeBtn).CornerRadius = UDim.new(0, 6)
+-- [BUTTON] OVERRIDE TUNE (The New Hack)
+local OverrideBtn = Instance.new("TextButton")
+OverrideBtn.Size = UDim2.new(0.9, 0, 0, 40)
+OverrideBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+OverrideBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0) -- Orange
+OverrideBtn.Text = "🔥 Inject Super Tune"
+OverrideBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+OverrideBtn.Font = Enum.Font.GothamBold
+OverrideBtn.TextSize = 14
+OverrideBtn.Parent = MainFrame
+Instance.new("UICorner", OverrideBtn).CornerRadius = UDim.new(0, 6)
 
-UpgradeBtn.MouseButton1Click:Connect(function()
+OverrideBtn.MouseButton1Click:Connect(function()
     local char = player.Character
     if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
         local car = char.Humanoid.SeatPart.Parent
-        
-        -- Based on your decompiled code, the stats are in the Car Value object
-        -- Line 4: local Value_13_upvr = script.Parent.Parent.Car.Value
         local carValue = car:FindFirstChild("Car") and car.Car.Value or car
         
-        if carValue then
-            -- We look for the attributes mentioned in your file (Line 44, 193)
-            local statsToBuff = {"MaxBoost", "Horsepower", "Torque", "MaxSpeed", "Turbochargers", "PeakRPM", "Redline"}
+        -- Try to find the Event we saw in the code: "UpdateTune"
+        -- Code line: Value_upvr:WaitForChild("UpdateTune")
+        local updateEvent = carValue:FindFirstChild("UpdateTune")
+        
+        -- Try to find the Tune Module
+        local tuneModule = carValue:FindFirstChild("A-Chassis Tune")
+        
+        if tuneModule then
+            local success, tuneData = pcall(require, tuneModule)
             
-            for _, stat in pairs(statsToBuff) do
-                local current = carValue:GetAttribute(stat)
-                if current then
-                    -- Multiply by 5 for massive boost
-                    carValue:SetAttribute(stat, current * 5)
+            if success and tuneData then
+                -- MODIFY THE DATA TABLE
+                tuneData.Horsepower = 100000
+                tuneData.Torque = 50000
+                tuneData.MaxSpeed = 500
+                tuneData.PeakRPM = 12000
+                tuneData.Redline = 13000
+                tuneData.Turbochargers = 2
+                tuneData.T_Boost = 50
+                tuneData.Superchargers = 1
+                tuneData.S_Boost = 50
+                
+                -- FORCE UPDATE (If the event exists)
+                if updateEvent then
+                    -- We fire the event to tell the car "Here is your new engine!"
+                    updateEvent:Fire(tuneData) 
+                    OverrideBtn.Text = "✅ Tune Injected!"
+                else
+                    -- Fallback: Just requiring it might update it if it's a shared table
+                    OverrideBtn.Text = "⚠️ Event Missing (Edited Table)"
                 end
+                
+                -- Attribute fallback (from V5)
+                carValue:SetAttribute("MaxBoost", 500)
+                carValue:SetAttribute("CurrentBoost", 500)
+                
+            else
+                OverrideBtn.Text = "❌ Locked Module"
             end
-            
-            -- Also check for NumberValues inside "Values" folder (Line 240 in your file)
-            local valuesFolder = carValue:FindFirstChild("Values") or car:FindFirstChild("Values")
-            if valuesFolder then
-                for _, v in pairs(valuesFolder:GetChildren()) do
-                    if v:IsA("NumberValue") and (v.Name == "Horsepower" or v.Name == "Torque" or v.Name == "BoostTurbo") then
-                        v.Value = v.Value * 5
-                    end
-                end
-            end
-            
-            UpgradeBtn.Text = "✅ Upgraded!"
-            task.wait(2)
-            UpgradeBtn.Text = "⚡ Upgrade Attributes"
         else
-            UpgradeBtn.Text = "❌ Car Value Not Found"
-            task.wait(2)
-            UpgradeBtn.Text = "⚡ Upgrade Attributes"
+            OverrideBtn.Text = "❌ No Tune Script"
         end
-    else
-        UpgradeBtn.Text = "⚠️ Sit in Driver Seat!"
+        
         task.wait(2)
-        UpgradeBtn.Text = "⚡ Upgrade Attributes"
+        OverrideBtn.Text = "🔥 Inject Super Tune"
+    else
+        OverrideBtn.Text = "⚠️ Sit in Driver Seat!"
+        task.wait(2)
+        OverrideBtn.Text = "🔥 Inject Super Tune"
     end
 end)
 
@@ -173,7 +185,7 @@ CloseBtn.Parent = MainFrame
 
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === LIMIT BREAKER SPEED LOOP ===
+-- === FORCE SPEED LOOP (Backup) ===
 RunService.Heartbeat:Connect(function()
     if not Config.SpeedEnabled then return end
     local char = player.Character
@@ -193,11 +205,9 @@ RunService.Heartbeat:Connect(function()
             bv.Parent = seat
             existingVel = bv
         end
-        -- Push harder if we are below target speed
         if currentSpeed < (Config.TargetSpeed * 1.5) then 
             existingVel.Velocity = seat.CFrame.LookVector * (currentSpeed + Config.AccelPower)
         else
-            -- Maintain max speed
              existingVel.Velocity = seat.CFrame.LookVector * currentSpeed
         end
     elseif seat.Throttle < 0 then
