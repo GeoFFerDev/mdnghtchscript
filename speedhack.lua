@@ -1,30 +1,29 @@
--- [[ JOSEPEDOV4: PATHFINDER EDITION ]] --
--- Features: Exact Path Ghosting (Based on your Dex findings), Limit Breaker, Minimize
+-- [[ JOSEPEDOV5: ATTRIBUTE EDITION ]] --
+-- Features: Attribute Modding (Based on Decompiled Code), Limit Breaker Speed, Minimized UI
 -- Optimized for Delta
 
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
 -- === CONFIGURATION ===
 local Config = {
     SpeedEnabled = false,
-    GhostEnabled = false,
-    TargetSpeed = 400,
-    AccelPower = 2,
-    BrakePower = 0.9
+    TargetSpeed = 400,    -- Max Speed (MPH)
+    AccelPower = 3,       -- Acceleration (Increased for V5)
+    BrakePower = 0.8
 }
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV4_UI"
+ScreenGui.Name = "JOSEPEDOV5_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 230)
+MainFrame.Size = UDim2.new(0, 220, 0, 200) -- Smaller since we removed Traffic
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
@@ -42,7 +41,7 @@ OpenBtn.Name = "OpenBtn"
 OpenBtn.Size = UDim2.new(0, 50, 0, 50)
 OpenBtn.Position = UDim2.new(0, 10, 0.4, 0)
 OpenBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-OpenBtn.Text = "J4"
+OpenBtn.Text = "J5"
 OpenBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 OpenBtn.Font = Enum.Font.GothamBlack
 OpenBtn.TextSize = 18
@@ -52,7 +51,7 @@ Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 12)
 
 -- Title
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV4"
+Title.Text = "JOSEPEDOV5"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
 Title.TextColor3 = Color3.fromRGB(0, 255, 255)
@@ -60,10 +59,10 @@ Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
 
--- [TOGGLE] SPEED HACK
+-- [TOGGLE] SPEED HACK (Physics)
 local SpeedBtn = Instance.new("TextButton")
 SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
-SpeedBtn.Position = UDim2.new(0.05, 0, 0.20, 0)
+SpeedBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
 SpeedBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 SpeedBtn.Text = "Speed Hack: OFF"
 SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -89,77 +88,61 @@ SpeedBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [TOGGLE] GHOST TRAFFIC
-local GhostBtn = Instance.new("TextButton")
-GhostBtn.Size = UDim2.new(0.9, 0, 0, 40)
-GhostBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
-GhostBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-GhostBtn.Text = "Ghost Traffic: OFF"
-GhostBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-GhostBtn.Font = Enum.Font.GothamBold
-GhostBtn.TextSize = 14
-GhostBtn.Parent = MainFrame
-Instance.new("UICorner", GhostBtn).CornerRadius = UDim.new(0, 6)
+-- [BUTTON] UPGRADE ENGINE (New Attribute Hack)
+local UpgradeBtn = Instance.new("TextButton")
+UpgradeBtn.Size = UDim2.new(0.9, 0, 0, 40)
+UpgradeBtn.Position = UDim2.new(0.05, 0, 0.50, 0)
+UpgradeBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0) -- Orange
+UpgradeBtn.Text = "⚡ Upgrade Attributes"
+UpgradeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+UpgradeBtn.Font = Enum.Font.GothamBold
+UpgradeBtn.TextSize = 14
+UpgradeBtn.Parent = MainFrame
+Instance.new("UICorner", UpgradeBtn).CornerRadius = UDim.new(0, 6)
 
--- === EXACT PATH LOGIC ===
--- This targets: Workspace > NPC vehicles > Vehicles > [Numbers] > Part > Car
-local function GhostSpecificCar(carModel)
-    if not carModel then return end
-    
-    -- Loop through all parts inside the car model
-    for _, part in pairs(carModel:GetDescendants()) do
-        if part:IsA("BasePart") or part:IsA("MeshPart") or part:IsA("Part") then
-            -- Force Collision OFF based on the checkboxes you saw
-            part.CanCollide = false
-            part.CanTouch = false
-            part.CanQuery = false
+UpgradeBtn.MouseButton1Click:Connect(function()
+    local char = player.Character
+    if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
+        local car = char.Humanoid.SeatPart.Parent
+        
+        -- Based on your decompiled code, the stats are in the Car Value object
+        -- Line 4: local Value_13_upvr = script.Parent.Parent.Car.Value
+        local carValue = car:FindFirstChild("Car") and car.Car.Value or car
+        
+        if carValue then
+            -- We look for the attributes mentioned in your file (Line 44, 193)
+            local statsToBuff = {"MaxBoost", "Horsepower", "Torque", "MaxSpeed", "Turbochargers", "PeakRPM", "Redline"}
             
-            -- Make transparent so you know it worked
-            if part.Transparency < 0.5 then
-                part.Transparency = 0.8
+            for _, stat in pairs(statsToBuff) do
+                local current = carValue:GetAttribute(stat)
+                if current then
+                    -- Multiply by 5 for massive boost
+                    carValue:SetAttribute(stat, current * 5)
+                end
             end
-        end
-    end
-end
-
--- The main loop that finds the specific folder
-local function ApplyGhosting()
-    local npcRoot = Workspace:FindFirstChild("NPC vehicles")
-    if npcRoot then
-        local vehiclesFolder = npcRoot:FindFirstChild("Vehicles")
-        if vehiclesFolder then
-            -- Iterate through the Numbered Folders
-            for _, numberFolder in pairs(vehiclesFolder:GetChildren()) do
-                -- Inside the numbered folder, you said there is a "Part" or "Car"
-                -- We will just ghost EVERYTHING inside that number folder to be safe
-                GhostSpecificCar(numberFolder)
+            
+            -- Also check for NumberValues inside "Values" folder (Line 240 in your file)
+            local valuesFolder = carValue:FindFirstChild("Values") or car:FindFirstChild("Values")
+            if valuesFolder then
+                for _, v in pairs(valuesFolder:GetChildren()) do
+                    if v:IsA("NumberValue") and (v.Name == "Horsepower" or v.Name == "Torque" or v.Name == "BoostTurbo") then
+                        v.Value = v.Value * 5
+                    end
+                end
             end
+            
+            UpgradeBtn.Text = "✅ Upgraded!"
+            task.wait(2)
+            UpgradeBtn.Text = "⚡ Upgrade Attributes"
+        else
+            UpgradeBtn.Text = "❌ Car Value Not Found"
+            task.wait(2)
+            UpgradeBtn.Text = "⚡ Upgrade Attributes"
         end
-    end
-end
-
-GhostBtn.MouseButton1Click:Connect(function()
-    Config.GhostEnabled = not Config.GhostEnabled
-    if Config.GhostEnabled then
-        GhostBtn.Text = "Ghost Traffic: ON 👻"
-        GhostBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
-        ApplyGhosting() -- Run once immediately
     else
-        GhostBtn.Text = "Ghost Traffic: OFF"
-        GhostBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    end
-end)
-
--- Listener for NEW cars spawning in that specific folder
-Workspace.DescendantAdded:Connect(function(descendant)
-    if Config.GhostEnabled then
-        -- Check if the new object is inside "NPC vehicles"
-        if descendant:IsDescendantOf(Workspace:FindFirstChild("NPC vehicles")) then
-            if descendant:IsA("Model") or descendant:IsA("Folder") then
-                task.wait(0.1) -- Wait for parts to load
-                GhostSpecificCar(descendant)
-            end
-        end
+        UpgradeBtn.Text = "⚠️ Sit in Driver Seat!"
+        task.wait(2)
+        UpgradeBtn.Text = "⚡ Upgrade Attributes"
     end
 end)
 
@@ -190,7 +173,7 @@ CloseBtn.Parent = MainFrame
 
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === SPEED LOOP ===
+-- === LIMIT BREAKER SPEED LOOP ===
 RunService.Heartbeat:Connect(function()
     if not Config.SpeedEnabled then return end
     local char = player.Character
@@ -210,9 +193,11 @@ RunService.Heartbeat:Connect(function()
             bv.Parent = seat
             existingVel = bv
         end
+        -- Push harder if we are below target speed
         if currentSpeed < (Config.TargetSpeed * 1.5) then 
             existingVel.Velocity = seat.CFrame.LookVector * (currentSpeed + Config.AccelPower)
         else
+            -- Maintain max speed
              existingVel.Velocity = seat.CFrame.LookVector * currentSpeed
         end
     elseif seat.Throttle < 0 then
