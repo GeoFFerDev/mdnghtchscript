@@ -1,29 +1,65 @@
--- [[ JOSEPEDOV6: EVENT OVERRIDE ]] --
--- Features: Internal Tune Event Hijack, Limit Breaker V2, Minimized UI
--- Optimized for Delta
+-- [[ JOSEPEDOV7: TRAFFIC JAMMER ]] --
+-- Features: HookFunction Traffic Blocker, Limit Breaker Speed, Minimized UI
+-- Optimized for Delta (Uses your RemoteSpy findings)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
 -- === CONFIGURATION ===
 local Config = {
     SpeedEnabled = false,
-    TargetSpeed = 400,    -- Max Speed (MPH)
-    AccelPower = 3,       -- Acceleration
+    TrafficBlocked = false, -- Default: Traffic Allowed
+    TargetSpeed = 400,      -- Max Speed (MPH)
+    AccelPower = 3,         -- Acceleration
     BrakePower = 0.8
 }
 
+-- === TRAFFIC BLOCKER LOGIC (HOOKFUNCTION) ===
+-- We run this ONCE to install the "Tap" on the wire.
+local function InstallTrafficHook()
+    local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
+    
+    if event then
+        -- Based on your Cobalt/RemoteSpy code
+        -- We get every connection listening to "Create Car"
+        for _, connection in pairs(getconnections(event.OnClientEvent)) do
+            
+            local oldFunction = connection.Function
+            
+            -- We replace the game's function with our own "Gatekeeper"
+            if oldFunction then
+                hookfunction(connection.Function, function(...)
+                    if Config.TrafficBlocked then
+                        -- BLOCK IT: Do nothing, return nothing.
+                        -- The game never finds out the server wanted a car.
+                        return 
+                    else
+                        -- ALLOW IT: Run the original code normally.
+                        return oldFunction(...)
+                    end
+                end)
+            end
+        end
+        return true
+    else
+        return false
+    end
+end
+
+-- Try to install the hook immediately
+local hookInstalled = InstallTrafficHook()
+
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV6_UI"
+ScreenGui.Name = "JOSEPEDOV7_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 180) -- Compact
+MainFrame.Size = UDim2.new(0, 220, 0, 180) 
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 0
@@ -40,9 +76,9 @@ local OpenBtn = Instance.new("TextButton")
 OpenBtn.Name = "OpenBtn"
 OpenBtn.Size = UDim2.new(0, 50, 0, 50)
 OpenBtn.Position = UDim2.new(0, 10, 0.4, 0)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 255) -- Magenta
-OpenBtn.Text = "J6"
-OpenBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Yellow
+OpenBtn.Text = "J7"
+OpenBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 OpenBtn.Font = Enum.Font.GothamBlack
 OpenBtn.TextSize = 18
 OpenBtn.Visible = false 
@@ -51,20 +87,20 @@ Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 12)
 
 -- Title
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV6"
+Title.Text = "JOSEPEDOV7"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 0, 255) -- Magenta Theme
+Title.TextColor3 = Color3.fromRGB(255, 255, 0) -- Yellow Theme
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
 
--- [TOGGLE] PHYSICS SPEED (Backup)
+-- [TOGGLE] SPEED HACK
 local SpeedBtn = Instance.new("TextButton")
 SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
 SpeedBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
 SpeedBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-SpeedBtn.Text = "Force Speed: OFF"
+SpeedBtn.Text = "Speed Hack: OFF"
 SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SpeedBtn.Font = Enum.Font.GothamBold
 SpeedBtn.TextSize = 14
@@ -74,11 +110,12 @@ Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
 SpeedBtn.MouseButton1Click:Connect(function()
     Config.SpeedEnabled = not Config.SpeedEnabled
     if Config.SpeedEnabled then
-        SpeedBtn.Text = "Force Speed: ON"
+        SpeedBtn.Text = "Speed Hack: ON"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50) 
     else
-        SpeedBtn.Text = "Force Speed: OFF"
+        SpeedBtn.Text = "Speed Hack: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        -- Cleanup
         local char = player.Character
         if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
             if char.Humanoid.SeatPart:FindFirstChild("LimitBreaker") then
@@ -88,73 +125,37 @@ SpeedBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [BUTTON] OVERRIDE TUNE (The New Hack)
-local OverrideBtn = Instance.new("TextButton")
-OverrideBtn.Size = UDim2.new(0.9, 0, 0, 40)
-OverrideBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
-OverrideBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0) -- Orange
-OverrideBtn.Text = "🔥 Inject Super Tune"
-OverrideBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-OverrideBtn.Font = Enum.Font.GothamBold
-OverrideBtn.TextSize = 14
-OverrideBtn.Parent = MainFrame
-Instance.new("UICorner", OverrideBtn).CornerRadius = UDim.new(0, 6)
+-- [TOGGLE] BLOCK TRAFFIC (New Hook Method)
+local TrafficBtn = Instance.new("TextButton")
+TrafficBtn.Size = UDim2.new(0.9, 0, 0, 40)
+TrafficBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50) -- Green (Allowed by default)
+TrafficBtn.Text = "Traffic: ALLOWED"
+TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TrafficBtn.Font = Enum.Font.GothamBold
+TrafficBtn.TextSize = 14
+TrafficBtn.Parent = MainFrame
+Instance.new("UICorner", TrafficBtn).CornerRadius = UDim.new(0, 6)
 
-OverrideBtn.MouseButton1Click:Connect(function()
-    local char = player.Character
-    if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
-        local car = char.Humanoid.SeatPart.Parent
-        local carValue = car:FindFirstChild("Car") and car.Car.Value or car
+TrafficBtn.MouseButton1Click:Connect(function()
+    if not hookInstalled then
+        TrafficBtn.Text = "❌ Hook Failed (Rejoin)"
+        return
+    end
+
+    Config.TrafficBlocked = not Config.TrafficBlocked
+    
+    if Config.TrafficBlocked then
+        TrafficBtn.Text = "Traffic: BLOCKED 🚫"
+        TrafficBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Red
         
-        -- Try to find the Event we saw in the code: "UpdateTune"
-        -- Code line: Value_upvr:WaitForChild("UpdateTune")
-        local updateEvent = carValue:FindFirstChild("UpdateTune")
+        -- Optional: Clear existing cars immediately
+        local npcFolder = Workspace:FindFirstChild("NPCVehicles") or Workspace:FindFirstChild("Traffic") or Workspace:FindFirstChild("NPC vehicles")
+        if npcFolder then npcFolder:ClearAllChildren() end
         
-        -- Try to find the Tune Module
-        local tuneModule = carValue:FindFirstChild("A-Chassis Tune")
-        
-        if tuneModule then
-            local success, tuneData = pcall(require, tuneModule)
-            
-            if success and tuneData then
-                -- MODIFY THE DATA TABLE
-                tuneData.Horsepower = 100000
-                tuneData.Torque = 50000
-                tuneData.MaxSpeed = 500
-                tuneData.PeakRPM = 12000
-                tuneData.Redline = 13000
-                tuneData.Turbochargers = 2
-                tuneData.T_Boost = 50
-                tuneData.Superchargers = 1
-                tuneData.S_Boost = 50
-                
-                -- FORCE UPDATE (If the event exists)
-                if updateEvent then
-                    -- We fire the event to tell the car "Here is your new engine!"
-                    updateEvent:Fire(tuneData) 
-                    OverrideBtn.Text = "✅ Tune Injected!"
-                else
-                    -- Fallback: Just requiring it might update it if it's a shared table
-                    OverrideBtn.Text = "⚠️ Event Missing (Edited Table)"
-                end
-                
-                -- Attribute fallback (from V5)
-                carValue:SetAttribute("MaxBoost", 500)
-                carValue:SetAttribute("CurrentBoost", 500)
-                
-            else
-                OverrideBtn.Text = "❌ Locked Module"
-            end
-        else
-            OverrideBtn.Text = "❌ No Tune Script"
-        end
-        
-        task.wait(2)
-        OverrideBtn.Text = "🔥 Inject Super Tune"
     else
-        OverrideBtn.Text = "⚠️ Sit in Driver Seat!"
-        task.wait(2)
-        OverrideBtn.Text = "🔥 Inject Super Tune"
+        TrafficBtn.Text = "Traffic: ALLOWED ✅"
+        TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50) -- Green
     end
 end)
 
@@ -185,7 +186,7 @@ CloseBtn.Parent = MainFrame
 
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === FORCE SPEED LOOP (Backup) ===
+-- === SPEED LOOP (Standard Limit Breaker) ===
 RunService.Heartbeat:Connect(function()
     if not Config.SpeedEnabled then return end
     local char = player.Character
