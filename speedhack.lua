@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV12: THE LIAR ]] --
--- Features: Velocity Spoofing (Speed Limit Bypass), Traffic Disconnector
--- Optimized for Delta | Based on "sourcedec.zip" Analysis
+-- [[ JOSEPEDOV14: REALISTIC TUNE ]] --
+-- Features: Optimized "Dragster" Stats, Traffic Disconnector, Smooth Assist
+-- Optimized for Delta | Values tuned for stability
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,41 +12,44 @@ local player = Players.LocalPlayer
 local Config = {
     SpeedEnabled = false,
     TrafficBlocked = false,
-    SpoofFactor = 0.1, -- 0.1 means we tell the game we are going 10% of real speed
-    ForcePower = 20 -- Extra push for acceleration
+    -- "Realistic" Cheat Values
+    TargetHP = 3500,       -- High end dragster (Stable)
+    TargetTorque = 2500,   -- Instant acceleration
+    TargetBoost = 100,     -- 100 PSI (High but valid)
+    AssistPower = 12000,   -- VectorForce (Smooth push)
 }
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV12_UI"
+ScreenGui.Name = "JOSEPEDOV14_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 220, 0, 220)
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10) -- Pitch Black
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 30) -- Slate Blue
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(255, 0, 0) -- Red Outline
+MainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 -- Title
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV12"
+Title.Text = "JOSEPEDOV14"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 0, 0)
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
 
--- [BUTTON] 1. KILL TRAFFIC (Disconnector)
+-- [BUTTON] 1. KILL TRAFFIC
 local TrafficBtn = Instance.new("TextButton")
 TrafficBtn.Size = UDim2.new(0.9, 0, 0, 40)
 TrafficBtn.Position = UDim2.new(0.05, 0, 0.20, 0)
-TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TrafficBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 TrafficBtn.Text = "🚫 Kill Traffic Signal"
 TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TrafficBtn.Font = Enum.Font.GothamBold
@@ -58,85 +61,57 @@ TrafficBtn.MouseButton1Click:Connect(function()
     Config.TrafficBlocked = not Config.TrafficBlocked
     if Config.TrafficBlocked then
         TrafficBtn.Text = "Traffic: DEAD 💀"
-        TrafficBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        TrafficBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         
-        -- METHOD: Disconnect the event entirely
         local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
         if event then
             for _, connection in pairs(getconnections(event.OnClientEvent)) do
-                connection:Disable() -- This cuts the wire permanently for this session
+                connection:Disable()
             end
         end
-        
-        -- Cleanup existing
         local npcFolder = Workspace:FindFirstChild("NPCVehicles") or Workspace:FindFirstChild("Traffic")
         if npcFolder then npcFolder:ClearAllChildren() end
     else
         TrafficBtn.Text = "Traffic: ALLOWED"
-        TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        
+        TrafficBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
         if event then
             for _, connection in pairs(getconnections(event.OnClientEvent)) do
-                connection:Enable() -- Reconnect
+                connection:Enable()
             end
         end
     end
 end)
 
--- [BUTTON] 2. SPEED SPOOFER (The "Liar" Hack)
-local SpeedBtn = Instance.new("TextButton")
-SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
-SpeedBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
-SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-SpeedBtn.Text = "⚡ Speed Spoof: OFF"
-SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedBtn.Font = Enum.Font.GothamBold
-SpeedBtn.TextSize = 14
-SpeedBtn.Parent = MainFrame
-Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
+-- [BUTTON] 2. SMART TUNER (Realistic)
+local TuneBtn = Instance.new("TextButton")
+TuneBtn.Size = UDim2.new(0.9, 0, 0, 40)
+TuneBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
+TuneBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+TuneBtn.Text = "🔧 Apply Sport Tune: OFF"
+TuneBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TuneBtn.Font = Enum.Font.GothamBold
+TuneBtn.TextSize = 14
+TuneBtn.Parent = MainFrame
+Instance.new("UICorner", TuneBtn).CornerRadius = UDim.new(0, 6)
 
--- HOOK LOGIC
-local oldIndex = nil
-oldIndex = hookmetamethod(game, "__index", function(self, key)
-    -- Only active if enabled and checking Velocity
-    if Config.SpeedEnabled and not checkcaller() then
-        if key == "Velocity" or key == "AssemblyLinearVelocity" then
-            -- Check if "self" is a part of our car
-            local char = player.Character
-            if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
-                local car = char.Humanoid.SeatPart.Parent
-                if self:IsDescendantOf(car) then
-                    -- RETURN THE LIE: "We are moving very slow"
-                    -- The game physics engine then adds MORE power to compensate
-                    return oldIndex(self, key) * Config.SpoofFactor
-                end
-            end
-        end
-    end
-    return oldIndex(self, key)
-end)
-
-SpeedBtn.MouseButton1Click:Connect(function()
+TuneBtn.MouseButton1Click:Connect(function()
     Config.SpeedEnabled = not Config.SpeedEnabled
     if Config.SpeedEnabled then
-        SpeedBtn.Text = "⚡ Speed Spoof: ACTIVE"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+        TuneBtn.Text = "🔧 Apply Sport Tune: ON"
+        TuneBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
     else
-        SpeedBtn.Text = "⚡ Speed Spoof: OFF"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TuneBtn.Text = "🔧 Apply Sport Tune: OFF"
+        TuneBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     end
 end)
 
--- [BUTTON] 3. CFrame Assist (Helper)
--- Sometimes spoofing isn't enough for acceleration, this adds a tiny push
+-- [BUTTON] 3. SMOOTH ASSIST (VectorForce)
 local AssistBtn = Instance.new("TextButton")
 AssistBtn.Size = UDim2.new(0.9, 0, 0, 40)
 AssistBtn.Position = UDim2.new(0.05, 0, 0.70, 0)
-AssistBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-AssistBtn.Text = "🚀 Assist Push: OFF"
+AssistBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+AssistBtn.Text = "🚀 Smooth Assist: OFF"
 AssistBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AssistBtn.Font = Enum.Font.GothamBold
 AssistBtn.TextSize = 14
@@ -147,15 +122,50 @@ local assistEnabled = false
 AssistBtn.MouseButton1Click:Connect(function()
     assistEnabled = not assistEnabled
     if assistEnabled then
-        AssistBtn.Text = "🚀 Assist Push: ON"
+        AssistBtn.Text = "🚀 Smooth Assist: ON"
         AssistBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
     else
-        AssistBtn.Text = "🚀 Assist Push: OFF"
-        AssistBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        AssistBtn.Text = "🚀 Smooth Assist: OFF"
+        AssistBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     end
 end)
 
--- LOOP FOR ASSIST PUSH
+-- === LOGIC LOOPS ===
+
+-- 1. REALISTIC VALUES (Runs every frame to fight resets)
+RunService.RenderStepped:Connect(function()
+    if not Config.SpeedEnabled then return end
+    
+    local char = player.Character
+    if not char then return end
+    local humanoid = char:FindFirstChild("Humanoid")
+    if not humanoid or not humanoid.SeatPart then return end
+    
+    local car = humanoid.SeatPart.Parent
+    local carVal = car:FindFirstChild("Car") and car.Car.Value or car
+    local valuesFolder = carVal:FindFirstChild("Values") or car:FindFirstChild("Values")
+    
+    -- Set Values to "High Performance" but not "Glitch" levels
+    if valuesFolder then
+        local torque = valuesFolder:FindFirstChild("Torque")
+        local hp = valuesFolder:FindFirstChild("Horsepower")
+        local boost = valuesFolder:FindFirstChild("BoostTurbo")
+        local maxSpeed = valuesFolder:FindFirstChild("MaxSpeed")
+        
+        -- 3500 HP is enough to hit 300+ MPH smoothly
+        if torque then torque.Value = Config.TargetTorque end
+        if hp then hp.Value = Config.TargetHP end
+        if boost then boost.Value = Config.TargetBoost end
+        if maxSpeed then maxSpeed.Value = 450 end -- Cap at 450 MPH for stability
+    end
+    
+    -- Sync Attributes
+    carVal:SetAttribute("Torque", Config.TargetTorque)
+    carVal:SetAttribute("Horsepower", Config.TargetHP)
+    carVal:SetAttribute("MaxBoost", Config.TargetBoost)
+end)
+
+-- 2. SMOOTH VECTOR ASSIST
 RunService.Heartbeat:Connect(function()
     if not assistEnabled then return end
     
@@ -163,14 +173,33 @@ RunService.Heartbeat:Connect(function()
     if not char then return end
     local humanoid = char:FindFirstChild("Humanoid")
     if not humanoid or not humanoid.SeatPart then return end
-    
     local seat = humanoid.SeatPart
+    
+    local vf = seat:FindFirstChild("J14_Assist")
+    local att = seat:FindFirstChild("J14_Att")
+    
+    if not vf then
+        att = Instance.new("Attachment", seat)
+        att.Name = "J14_Att"
+        
+        vf = Instance.new("VectorForce")
+        vf.Name = "J14_Assist"
+        vf.Attachment0 = att
+        vf.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+        vf.Parent = seat
+    end
+    
+    -- Apply "Realistic" Force (12,000 is like a strong engine push)
     if seat.Throttle > 0 then
-        seat.AssemblyLinearVelocity = seat.AssemblyLinearVelocity + (seat.CFrame.LookVector * Config.ForcePower)
+        vf.Force = Vector3.new(0, 0, -Config.AssistPower) 
+    elseif seat.Throttle < 0 then
+        vf.Force = Vector3.new(0, 0, Config.AssistPower)
+    else
+        vf.Force = Vector3.new(0, 0, 0)
     end
 end)
 
--- CLOSE BUTTON
+-- Close Button
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Text = "X"
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
