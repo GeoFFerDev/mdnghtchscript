@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV17: RPM HOOKER ]] --
--- Features: RotVelocity Hook (Infinite Revs), Traffic Disconnector, Auto-Grip
--- Optimized for Delta | Fixes V16's "Slow" issue by maintaining Grip
+-- [[ JOSEPEDOV18: GRAVITY DRIVE ]] --
+-- Features: Artificial Gravity Physics, Massless Acceleration, Traffic Jammer
+-- Optimized for Delta | Fixes "Stuck in 1st Gear" by preserving Wheel Speed
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,11 +12,11 @@ local player = Players.LocalPlayer
 local Config = {
     SpeedEnabled = false,
     TrafficBlocked = false,
-    SpoofFactor = 0.2, -- We tell the game we are 5x slower than reality (Lower = Faster)
-    GripPower = 2.5,   -- 2.5x Normal Grip (Sticks to road)
+    Downforce = 1000,   -- Artificial Gravity (Keeps car on road)
+    ForwardForce = 5000, -- Extra Push (Adjust if too fast)
 }
 
--- === 1. TRAFFIC JAMMER (The Working Hook) ===
+-- === TRAFFIC JAMMER (KEEPING THIS!) ===
 local function InstallTrafficHook()
     local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
     if event then
@@ -24,8 +24,8 @@ local function InstallTrafficHook()
             local oldFunction = connection.Function
             if oldFunction then
                 hookfunction(connection.Function, function(...)
-                    if Config.TrafficBlocked then return end -- BLOCK
-                    return oldFunction(...) -- ALLOW
+                    if Config.TrafficBlocked then return end
+                    return oldFunction(...)
                 end)
             end
         end
@@ -35,25 +35,25 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV17_UI"
+ScreenGui.Name = "JOSEPEDOV18_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 220, 0, 220)
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20) -- Dark Slate
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(255, 50, 50) -- Red Theme
+MainFrame.BorderColor3 = Color3.fromRGB(255, 165, 0) -- Orange Theme
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV17"
+Title.Text = "JOSEPEDOV18"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 50, 50)
+Title.TextColor3 = Color3.fromRGB(255, 165, 0)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
@@ -74,7 +74,7 @@ TrafficBtn.MouseButton1Click:Connect(function()
     Config.TrafficBlocked = not Config.TrafficBlocked
     if Config.TrafficBlocked then
         TrafficBtn.Text = "Traffic: DEAD 💀"
-        TrafficBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        TrafficBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
         if event then
             for _, connection in pairs(getconnections(event.OnClientEvent)) do
@@ -95,95 +95,131 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [BUTTON] 2. RPM HOOK (Speed)
+-- [BUTTON] 2. GRAVITY DRIVE (The Fix)
 local SpeedBtn = Instance.new("TextButton")
 SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
 SpeedBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
 SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-SpeedBtn.Text = "⚡ RPM Hook: OFF"
+SpeedBtn.Text = "🚀 Gravity Drive: OFF"
 SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SpeedBtn.Font = Enum.Font.GothamBold
 SpeedBtn.TextSize = 14
 SpeedBtn.Parent = MainFrame
 Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
 
--- === THE SPEED HOOK LOGIC ===
-local oldIndex = nil
-oldIndex = hookmetamethod(game, "__index", function(self, key)
-    -- Only run if enabled and called by the Game Script (not us)
-    if Config.SpeedEnabled and not checkcaller() then
-        -- Check if the game is reading Wheel Speed
-        if key == "RotVelocity" then
-            -- Verify "self" is a Wheel on our car
-            local char = player.Character
-            if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
-                local car = char.Humanoid.SeatPart.Parent
-                if self:IsDescendantOf(car) and self:IsA("BasePart") then
-                    -- RETURN THE LIE: "We are spinning slowly"
-                    -- This tricks the A-Chassis Limiter into giving more power
-                    return oldIndex(self, key) * Config.SpoofFactor
-                end
-            end
-        end
-    end
-    return oldIndex(self, key)
-end)
-
 SpeedBtn.MouseButton1Click:Connect(function()
     Config.SpeedEnabled = not Config.SpeedEnabled
     if Config.SpeedEnabled then
-        SpeedBtn.Text = "⚡ RPM Hook: ACTIVE"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50) -- Red
+        SpeedBtn.Text = "🚀 Gravity Drive: ON"
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+        SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    else
+        SpeedBtn.Text = "🚀 Gravity Drive: OFF"
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         
-        -- AUTO-APPLY GRIP (Fixes the V16 "Slow" issue)
+        -- Restore Mass
         local char = player.Character
         if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
             local car = char.Humanoid.SeatPart.Parent
             for _, part in pairs(car:GetDescendants()) do
-                if part:IsA("BasePart") and (part.Name == "FL" or part.Name == "FR" or part.Name == "RL" or part.Name == "RR" or part.Name:match("Wheel")) then
-                    -- High Friction = Good Grip
-                    part.CustomPhysicalProperties = PhysicalProperties.new(10, Config.GripPower, 0, 100, 100)
-                end
+                if part:IsA("BasePart") then part.Massless = false end
             end
         end
-        
-    else
-        SpeedBtn.Text = "⚡ RPM Hook: OFF"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     end
 end)
 
--- [BUTTON] 3. PANIC RESET
-local PanicBtn = Instance.new("TextButton")
-PanicBtn.Size = UDim2.new(0.9, 0, 0, 40)
-PanicBtn.Position = UDim2.new(0.05, 0, 0.70, 0)
-PanicBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-PanicBtn.Text = "⚠️ RESET ALL"
-PanicBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-PanicBtn.Font = Enum.Font.GothamBold
-PanicBtn.TextSize = 14
-PanicBtn.Parent = MainFrame
-Instance.new("UICorner", PanicBtn).CornerRadius = UDim.new(0, 6)
+-- [BUTTON] 3. EMERGENCY RESET
+local ResetBtn = Instance.new("TextButton")
+ResetBtn.Size = UDim2.new(0.9, 0, 0, 40)
+ResetBtn.Position = UDim2.new(0.05, 0, 0.70, 0)
+ResetBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ResetBtn.Text = "⚠️ RESET PHYSICS"
+ResetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ResetBtn.Font = Enum.Font.GothamBold
+ResetBtn.TextSize = 14
+ResetBtn.Parent = MainFrame
+Instance.new("UICorner", ResetBtn).CornerRadius = UDim.new(0, 6)
 
-PanicBtn.MouseButton1Click:Connect(function()
+ResetBtn.MouseButton1Click:Connect(function()
     Config.SpeedEnabled = false
-    SpeedBtn.Text = "⚡ RPM Hook: OFF"
+    SpeedBtn.Text = "🚀 Gravity Drive: OFF"
     SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    -- Reset Friction (Optional, usually resetting char works best)
+    
+    local char = player.Character
+    if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
+        local seat = char.Humanoid.SeatPart
+        -- Destroy Artificial Gravity Forces
+        if seat:FindFirstChild("J18_Grav") then seat.J18_Grav:Destroy() end
+        if seat:FindFirstChild("J18_Push") then seat.J18_Push:Destroy() end
+        if seat:FindFirstChild("J18_Att") then seat.J18_Att:Destroy() end
+        
+        -- Restore Mass
+        local car = seat.Parent
+        for _, part in pairs(car:GetDescendants()) do
+            if part:IsA("BasePart") then part.Massless = false end
+        end
+    end
 end)
 
--- Minimize
-local MinBtn = Instance.new("TextButton")
-MinBtn.Text = "-"
-MinBtn.Size = UDim2.new(0, 30, 0, 30)
-MinBtn.Position = UDim2.new(0.70, 0, 0, 0)
-MinBtn.BackgroundTransparency = 1
-MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.Parent = MainFrame
-MinBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
+-- === PHYSICS LOOP ===
+RunService.Heartbeat:Connect(function()
+    if not Config.SpeedEnabled then return end
+    
+    local char = player.Character
+    if not char then return end
+    local humanoid = char:FindFirstChild("Humanoid")
+    if not humanoid or not humanoid.SeatPart then return end
+    
+    local seat = humanoid.SeatPart
+    local car = seat.Parent
+    
+    -- 1. MAKE CAR WEIGHTLESS (Every frame to fight resets)
+    for _, part in pairs(car:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Massless = true
+        end
+    end
+    
+    -- 2. SETUP ARTIFICIAL FORCES
+    local att = seat:FindFirstChild("J18_Att")
+    local gravForce = seat:FindFirstChild("J18_Grav")
+    local pushForce = seat:FindFirstChild("J18_Push")
+    
+    if not att then
+        att = Instance.new("Attachment", seat)
+        att.Name = "J18_Att"
+        
+        -- Artificial Gravity (Always Down relative to World)
+        gravForce = Instance.new("VectorForce")
+        gravForce.Name = "J18_Grav"
+        gravForce.Attachment0 = att
+        gravForce.RelativeTo = Enum.ActuatorRelativeTo.World 
+        gravForce.Parent = seat
+        
+        -- Artificial Engine (Always Forward relative to Car)
+        pushForce = Instance.new("VectorForce")
+        pushForce.Name = "J18_Push"
+        pushForce.Attachment0 = att
+        pushForce.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+        pushForce.Parent = seat
+    end
+    
+    -- 3. APPLY FORCES
+    -- Apply Downforce (Simulate Gravity so we don't fly)
+    gravForce.Force = Vector3.new(0, -Config.Downforce, 0)
+    
+    -- Apply Push (Assisted Acceleration)
+    if seat.Throttle > 0 then
+        pushForce.Force = Vector3.new(0, 0, -Config.ForwardForce) -- Push Forward
+    elseif seat.Throttle < 0 then
+        pushForce.Force = Vector3.new(0, 0, Config.ForwardForce) -- Brake/Reverse
+    else
+        pushForce.Force = Vector3.new(0, 0, 0)
+    end
+end)
 
--- Close
+-- Close Button
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Text = "X"
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
