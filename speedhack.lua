@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV33: INTELLIGENT BOOSTER ]] --
--- Features: Gas Pedal Detection (Dual Check), 7000 Power, Traffic Jammer
--- Optimized for Delta | "Arm & Drive" System
+-- [[ JOSEPEDOV34: VIRTUAL PEDALS ]] --
+-- Features: Custom Gas/Brake UI, Auto-Stop (Anti-Creep), Traffic Jammer
+-- Optimized for Delta | Fixes "Continuous Running" by actively holding the car
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,8 +11,8 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000,  -- Sweet Spot
-    IsArmed = false     -- Master Switch
+    BoostPower = 7000, -- The Sweet Spot
+    InputState = "IDLE", -- Can be "GAS", "BRAKE", or "IDLE"
 }
 
 -- === 1. TRAFFIC JAMMER ===
@@ -34,39 +34,39 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV33_UI"
+ScreenGui.Name = "JOSEPEDOV34_UI"
 ScreenGui.Parent = game.CoreGui
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 200, 0, 160)
-MainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(255, 200, 0) -- Gold
-MainFrame.Active = true
-MainFrame.Draggable = true 
-MainFrame.Parent = ScreenGui
+-- MAIN CONTROL PANEL (Left Side - Traffic & Minimized)
+local ControlFrame = Instance.new("Frame")
+ControlFrame.Name = "ControlFrame"
+ControlFrame.Size = UDim2.new(0, 150, 0, 80)
+ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ControlFrame.BorderSizePixel = 2
+ControlFrame.BorderColor3 = Color3.fromRGB(0, 255, 255)
+ControlFrame.Active = true
+ControlFrame.Draggable = true 
+ControlFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J33: SMART BOOST"
-Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "J34: VIRTUAL"
+Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 200, 0)
+Title.TextColor3 = Color3.fromRGB(0, 255, 255)
 Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 16
-Title.Parent = MainFrame
+Title.TextSize = 14
+Title.Parent = ControlFrame
 
--- [BUTTON 1] TRAFFIC
 local TrafficBtn = Instance.new("TextButton")
 TrafficBtn.Size = UDim2.new(0.9, 0, 0, 40)
-TrafficBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
+TrafficBtn.Position = UDim2.new(0.05, 0, 0.35, 0)
 TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 TrafficBtn.Text = "🚫 Kill Traffic"
 TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TrafficBtn.Font = Enum.Font.GothamBold
 TrafficBtn.TextSize = 14
-TrafficBtn.Parent = MainFrame
+TrafficBtn.Parent = ControlFrame
 Instance.new("UICorner", TrafficBtn).CornerRadius = UDim.new(0, 6)
 
 TrafficBtn.MouseButton1Click:Connect(function()
@@ -75,140 +75,127 @@ TrafficBtn.MouseButton1Click:Connect(function()
         TrafficBtn.Text = "Traffic: DEAD 💀"
         TrafficBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
-        if event then
-            for _, connection in pairs(getconnections(event.OnClientEvent)) do
-                connection:Disable()
-            end
-        end
-        local npcFolder = Workspace:FindFirstChild("NPCVehicles") or Workspace:FindFirstChild("Traffic")
-        if npcFolder then npcFolder:ClearAllChildren() end
+        if event then for _, c in pairs(getconnections(event.OnClientEvent)) do c:Disable() end end
+        local npc = Workspace:FindFirstChild("NPCVehicles") or Workspace:FindFirstChild("Traffic")
+        if npc then npc:ClearAllChildren() end
     else
         TrafficBtn.Text = "Traffic: ALLOWED"
         TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
-        if event then
-            for _, connection in pairs(getconnections(event.OnClientEvent)) do
-                connection:Enable()
-            end
-        end
+        if event then for _, c in pairs(getconnections(event.OnClientEvent)) do c:Enable() end end
     end
 end)
 
--- [BUTTON 2] ARMING SWITCH
-local BoostBtn = Instance.new("TextButton")
-BoostBtn.Size = UDim2.new(0.9, 0, 0, 60)
-BoostBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
-BoostBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-BoostBtn.Text = "SYSTEM: OFF\n(Tap to Arm)"
-BoostBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-BoostBtn.Font = Enum.Font.GothamBold
-BoostBtn.TextSize = 16
-BoostBtn.Parent = MainFrame
-Instance.new("UICorner", BoostBtn).CornerRadius = UDim.new(0, 6)
+-- === VIRTUAL PEDALS (Right Side - Ergonomic) ===
 
-BoostBtn.MouseButton1Click:Connect(function()
-    Config.IsArmed = not Config.IsArmed
-    
-    if Config.IsArmed then
-        BoostBtn.Text = "⚠️ ARMED (7000)\n(Press Gas to Fire)"
-        BoostBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 0) -- Gold/Yellow
-        BoostBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-    else
-        BoostBtn.Text = "SYSTEM: OFF\n(Tap to Arm)"
-        BoostBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        BoostBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    end
-end)
+-- GAS PEDAL (Big Green)
+local GasBtn = Instance.new("TextButton")
+GasBtn.Name = "GasPedal"
+GasBtn.Size = UDim2.new(0, 120, 0, 150) -- Big hit area
+GasBtn.Position = UDim2.new(0.85, 0, 0.5, 0) -- Right thumb area
+GasBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+GasBtn.BackgroundTransparency = 0.6 -- See-through
+GasBtn.Text = "GAS\n(7000)"
+GasBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+GasBtn.Font = Enum.Font.GothamBlack
+GasBtn.TextSize = 24
+GasBtn.Parent = ScreenGui
+Instance.new("UICorner", GasBtn).CornerRadius = UDim.new(0, 20)
 
--- === PHYSICS LOOP (Input Detection) ===
+-- BRAKE PEDAL (Smaller Red)
+local BrakeBtn = Instance.new("TextButton")
+BrakeBtn.Name = "BrakePedal"
+BrakeBtn.Size = UDim2.new(0, 80, 0, 80)
+BrakeBtn.Position = UDim2.new(0.75, 0, 0.65, 0) -- Slightly left of gas
+BrakeBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+BrakeBtn.BackgroundTransparency = 0.6
+BrakeBtn.Text = "STOP\nREV"
+BrakeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+BrakeBtn.Font = Enum.Font.GothamBlack
+BrakeBtn.TextSize = 16
+BrakeBtn.Parent = ScreenGui
+Instance.new("UICorner", BrakeBtn).CornerRadius = UDim.new(0, 20)
+
+-- INPUT HANDLING
+GasBtn.MouseButton1Down:Connect(function() Config.InputState = "GAS"; GasBtn.BackgroundTransparency = 0.2 end)
+GasBtn.MouseButton1Up:Connect(function() Config.InputState = "IDLE"; GasBtn.BackgroundTransparency = 0.6 end)
+GasBtn.MouseLeave:Connect(function() Config.InputState = "IDLE"; GasBtn.BackgroundTransparency = 0.6 end)
+
+BrakeBtn.MouseButton1Down:Connect(function() Config.InputState = "BRAKE"; BrakeBtn.BackgroundTransparency = 0.2 end)
+BrakeBtn.MouseButton1Up:Connect(function() Config.InputState = "IDLE"; BrakeBtn.BackgroundTransparency = 0.6 end)
+BrakeBtn.MouseLeave:Connect(function() Config.InputState = "IDLE"; BrakeBtn.BackgroundTransparency = 0.6 end)
+
+-- === PHYSICS LOOP ===
 RunService.Heartbeat:Connect(function()
     local char = player.Character
     if not char then return end
     
-    -- 1. Find Seat & Car
+    -- Find Seat (Auto-detect)
     local driveSeat = nil
-    local car = nil
-    
-    -- Try Humanoid Seat
     local humanoid = char:FindFirstChild("Humanoid")
     if humanoid and humanoid.SeatPart then
         driveSeat = humanoid.SeatPart
-        car = driveSeat.Parent
     else
-        -- Try Manual Search (Lf20Besaya's Car)
-        car = Workspace:FindFirstChild("Lf20Besaya's Car")
-        if car then driveSeat = car:FindFirstChild("DriveSeat") end
+        local carModel = Workspace:FindFirstChild("Lf20Besaya's Car")
+        if carModel then driveSeat = carModel:FindFirstChild("DriveSeat") end
     end
     
-    -- 2. Clean up if not seated or not armed
-    if not driveSeat or not Config.IsArmed then
-        if driveSeat then
-             local thrust = driveSeat:FindFirstChild("J33_Thrust")
-             if thrust then thrust:Destroy() end
-        end
-        return 
+    if not driveSeat then return end
+    
+    -- MANAGING FORCES
+    local thrust = driveSeat:FindFirstChild("J34_Thrust")
+    local anchor = driveSeat:FindFirstChild("J34_Anchor")
+    local att = driveSeat:FindFirstChild("J34_Att")
+    
+    if not att then
+        att = Instance.new("Attachment", driveSeat)
+        att.Name = "J34_Att"
     end
     
-    -- 3. DETECT GAS INPUT (The Dual Check)
-    local isPressingGas = false
-    
-    -- Check A: Standard Roblox Input
-    if driveSeat.Throttle > 0 then
-        isPressingGas = true
-    end
-    
-    -- Check B: A-Chassis Values (Fixes the V30 Bug)
-    if not isPressingGas and car then
-        local carVal = car:FindFirstChild("Car") and car.Car.Value or car
-        local valFolder = carVal:FindFirstChild("Values") or car:FindFirstChild("Values")
-        if valFolder then
-            local throttleVal = valFolder:FindFirstChild("Throttle")
-            if throttleVal and throttleVal.Value > 0 then
-                isPressingGas = true
-            end
-        end
-    end
-
-    -- 4. FIRE ROCKET
-    if isPressingGas then
-        -- Visual Feedback (Optional)
-        BoostBtn.Text = "🚀 FIRING! 🚀"
-        BoostBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green
-        
-        local att = driveSeat:FindFirstChild("J33_Att")
-        local thrust = driveSeat:FindFirstChild("J33_Thrust")
-        
-        if not att then
-            att = Instance.new("Attachment", driveSeat)
-            att.Name = "J33_Att"
-        end
+    if Config.InputState == "GAS" then
+        -- 1. APPLY FORWARD FORCE
+        if anchor then anchor:Destroy() end -- Release Brake
         
         if not thrust then
             thrust = Instance.new("VectorForce", driveSeat)
-            thrust.Name = "J33_Thrust"
+            thrust.Name = "J34_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-            thrust.Force = Vector3.new(0, 0, -Config.BoostPower)
         end
+        thrust.Force = Vector3.new(0, 0, -Config.BoostPower) -- Forward
         
-        thrust.Force = Vector3.new(0, 0, -Config.BoostPower)
+    elseif Config.InputState == "BRAKE" then
+        -- 2. APPLY REVERSE FORCE
+        if anchor then anchor:Destroy() end -- Release Brake
         
-    else
-        -- IDLE (Armed but waiting)
-        BoostBtn.Text = "⚠️ ARMED (7000)\n(Press Gas to Fire)"
-        BoostBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+        if not thrust then
+            thrust = Instance.new("VectorForce", driveSeat)
+            thrust.Name = "J34_Thrust"
+            thrust.Attachment0 = att
+            thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+        end
+        thrust.Force = Vector3.new(0, 0, Config.BoostPower) -- Backward
         
-        local thrust = driveSeat:FindFirstChild("J33_Thrust")
-        if thrust then thrust:Destroy() end
+    else -- IDLE
+        -- 3. AUTO-STOP (The Anti-Creep Fix)
+        if thrust then thrust:Destroy() end -- Stop Pushing
+        
+        -- Create "Anchor" (BodyVelocity 0) to hold car in place
+        if not anchor then
+            anchor = Instance.new("BodyVelocity", driveSeat)
+            anchor.Name = "J34_Anchor"
+            anchor.MaxForce = Vector3.new(100000, 0, 100000) -- Only stop X/Z (Movement), let Y (Gravity) work
+            anchor.Velocity = Vector3.new(0, 0, 0) -- FREEZE
+        end
     end
 end)
 
--- Close
+-- Close Button
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Text = "X"
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(0.85, 0, 0, 0)
+CloseBtn.Size = UDim2.new(0, 20, 0, 20)
+CloseBtn.Position = UDim2.new(1, -20, 0, 0)
 CloseBtn.BackgroundTransparency = 1
-CloseBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-CloseBtn.Parent = MainFrame
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.Parent = ControlFrame
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
