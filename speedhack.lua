@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV29: VELOCITY AMPLIFIER ]] --
--- Features: Exponential Speed Boost, Traffic Jammer, Adjustable Power
--- Optimized for Delta | Bypasses "Cached Stats" by amplifying physics directly
+-- [[ JOSEPEDOV30: THE ROCKET THRUSTER ]] --
+-- Features: VectorForce Propulsion, Visual Status Debug, Traffic Jammer
+-- Optimized for Delta | Bypasses Engine by pushing the physical model
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,11 +12,10 @@ local player = Players.LocalPlayer
 local Config = {
     SpeedEnabled = false,
     TrafficBlocked = false,
-    Multiplier = 1.02, -- 2% speed gain per frame (Exponential growth)
-    MaxSpeed = 600,    -- Cap speed to prevent crashing game
+    BoostPower = 50000, -- Starting Power (Adjustable)
 }
 
--- === 1. TRAFFIC JAMMER (The Working Hook) ===
+-- === 1. TRAFFIC JAMMER (Working) ===
 local function InstallTrafficHook()
     local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
     if event then
@@ -35,33 +34,44 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV29_UI"
+ScreenGui.Name = "JOSEPEDOV30_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 260)
+MainFrame.Size = UDim2.new(0, 220, 0, 280)
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(255, 50, 150) -- Hot Pink
+MainFrame.BorderColor3 = Color3.fromRGB(255, 100, 0) -- Orange
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV29"
+Title.Text = "JOSEPEDOV30"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 50, 150)
+Title.TextColor3 = Color3.fromRGB(255, 100, 0)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
 
+-- [STATUS LABEL] (Debug)
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Text = "STATUS: WAITING..."
+StatusLabel.Size = UDim2.new(0.9, 0, 0, 30)
+StatusLabel.Position = UDim2.new(0.05, 0, 0.15, 0)
+StatusLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.Font = Enum.Font.Code
+StatusLabel.TextSize = 14
+StatusLabel.Parent = MainFrame
+
 -- [BUTTON] 1. KILL TRAFFIC
 local TrafficBtn = Instance.new("TextButton")
 TrafficBtn.Size = UDim2.new(0.9, 0, 0, 40)
-TrafficBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
+TrafficBtn.Position = UDim2.new(0.05, 0, 0.30, 0)
 TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 TrafficBtn.Text = "🚫 Kill Traffic Signal"
 TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -95,21 +105,21 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [CONTROLS] POWER ADJUSTMENT
+-- [CONTROLS] POWER ADJUSTER
 local PowerLabel = Instance.new("TextLabel")
-PowerLabel.Text = "Boost Power: 2%"
+PowerLabel.Text = "Thruster Power: 50,000"
 PowerLabel.Size = UDim2.new(0.9, 0, 0, 20)
-PowerLabel.Position = UDim2.new(0.05, 0, 0.35, 0)
+PowerLabel.Position = UDim2.new(0.05, 0, 0.50, 0)
 PowerLabel.BackgroundTransparency = 1
 PowerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 PowerLabel.Font = Enum.Font.GothamBold
-PowerLabel.TextSize = 14
+PowerLabel.TextSize = 12
 PowerLabel.Parent = MainFrame
 
 local MinusBtn = Instance.new("TextButton")
 MinusBtn.Text = "-"
 MinusBtn.Size = UDim2.new(0.4, 0, 0, 30)
-MinusBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
+MinusBtn.Position = UDim2.new(0.05, 0, 0.60, 0)
 MinusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinusBtn.Parent = MainFrame
@@ -117,88 +127,109 @@ MinusBtn.Parent = MainFrame
 local PlusBtn = Instance.new("TextButton")
 PlusBtn.Text = "+"
 PlusBtn.Size = UDim2.new(0.4, 0, 0, 30)
-PlusBtn.Position = UDim2.new(0.55, 0, 0.45, 0)
+PlusBtn.Position = UDim2.new(0.55, 0, 0.60, 0)
 PlusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 PlusBtn.Parent = MainFrame
 
 MinusBtn.MouseButton1Click:Connect(function()
-    Config.Multiplier = math.max(1.005, Config.Multiplier - 0.005)
-    local percent = math.floor((Config.Multiplier - 1) * 1000) / 10
-    PowerLabel.Text = "Boost Power: " .. percent .. "%"
+    Config.BoostPower = math.max(10000, Config.BoostPower - 10000)
+    PowerLabel.Text = "Thruster Power: " .. Config.BoostPower
 end)
 
 PlusBtn.MouseButton1Click:Connect(function()
-    Config.Multiplier = math.min(1.10, Config.Multiplier + 0.005)
-    local percent = math.floor((Config.Multiplier - 1) * 1000) / 10
-    PowerLabel.Text = "Boost Power: " .. percent .. "%"
+    Config.BoostPower = Config.BoostPower + 10000
+    PowerLabel.Text = "Thruster Power: " .. Config.BoostPower
 end)
 
--- [BUTTON] 2. ACTIVATE AMPLIFIER
-local AmpBtn = Instance.new("TextButton")
-AmpBtn.Size = UDim2.new(0.9, 0, 0, 50)
-AmpBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
-AmpBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-AmpBtn.Text = "🚀 LIMIT BREAKER: OFF"
-AmpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-AmpBtn.Font = Enum.Font.GothamBold
-AmpBtn.TextSize = 14
-AmpBtn.Parent = MainFrame
-Instance.new("UICorner", AmpBtn).CornerRadius = UDim.new(0, 6)
+-- [BUTTON] 2. ACTIVATE ROCKET
+local BoostBtn = Instance.new("TextButton")
+BoostBtn.Size = UDim2.new(0.9, 0, 0, 50)
+BoostBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
+BoostBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+BoostBtn.Text = "🚀 ROCKET BOOST: OFF"
+BoostBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+BoostBtn.Font = Enum.Font.GothamBold
+BoostBtn.TextSize = 14
+BoostBtn.Parent = MainFrame
+Instance.new("UICorner", BoostBtn).CornerRadius = UDim.new(0, 6)
 
-AmpBtn.MouseButton1Click:Connect(function()
+BoostBtn.MouseButton1Click:Connect(function()
     Config.SpeedEnabled = not Config.SpeedEnabled
     if Config.SpeedEnabled then
-        AmpBtn.Text = "🚀 LIMIT BREAKER: ON"
-        AmpBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+        BoostBtn.Text = "🚀 ROCKET BOOST: ON"
+        BoostBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
     else
-        AmpBtn.Text = "🚀 LIMIT BREAKER: OFF"
-        AmpBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        BoostBtn.Text = "🚀 ROCKET BOOST: OFF"
+        BoostBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        StatusLabel.Text = "STATUS: OFF"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     end
 end)
 
--- === PHYSICS AMPLIFIER LOOP ===
--- This is the core logic. It runs every frame.
+-- === PHYSICS LOOP (Heartbeat) ===
 RunService.Heartbeat:Connect(function()
     if not Config.SpeedEnabled then return end
     
     local char = player.Character
-    if not char then return end
+    if not char then 
+        StatusLabel.Text = "STATUS: NO CHAR"
+        StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        return 
+    end
+    
     local humanoid = char:FindFirstChild("Humanoid")
-    if not humanoid or not humanoid.SeatPart then return end
+    if not humanoid or not humanoid.SeatPart then 
+        StatusLabel.Text = "STATUS: SIT IN CAR"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Yellow
+        return 
+    end
     
     local seat = humanoid.SeatPart
-    local car = seat.Parent
-    local root = car.PrimaryPart or seat 
     
-    -- ONLY BOOST WHEN HOLDING GAS
+    -- CHECK INPUT (Gas Pedal)
     if seat.Throttle > 0 then
-        -- 1. Get Current Velocity
-        local currentVel = root.AssemblyLinearVelocity
-        local speed = currentVel.Magnitude
+        StatusLabel.Text = "STATUS: BOOSTING!"
+        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
         
-        -- 2. Check if we are below MaxSpeed
-        if speed < Config.MaxSpeed then
-            -- 3. AMPLIFY
-            -- We multiply X and Z (Movement) but keep Y (Gravity) safe
-            -- This makes you accelerate 2% faster every single frame.
-            -- 100 -> 102 -> 104 -> 106... it grows incredibly fast.
-            
-            root.AssemblyLinearVelocity = Vector3.new(
-                currentVel.X * Config.Multiplier,
-                currentVel.Y, -- Keep Gravity normal!
-                currentVel.Z * Config.Multiplier
-            )
+        -- APPLY VECTOR FORCE
+        -- 1. Create Attachment/Force if missing
+        local att = seat:FindFirstChild("J30_Att")
+        local thrust = seat:FindFirstChild("J30_Thrust")
+        
+        if not att then
+            att = Instance.new("Attachment", seat)
+            att.Name = "J30_Att"
         end
         
+        if not thrust then
+            thrust = Instance.new("VectorForce", seat)
+            thrust.Name = "J30_Thrust"
+            thrust.Attachment0 = att
+            thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0 -- Push relative to car
+        end
+        
+        -- 2. PUSH FORWARD
+        -- Z-Axis is usually forward/backward. 
+        -- Negative Z (-Config.BoostPower) is usually FORWARD for cars.
+        thrust.Force = Vector3.new(0, 0, -Config.BoostPower) 
+        
     elseif seat.Throttle < 0 then
-        -- Optional: Improved Braking
-        local currentVel = root.AssemblyLinearVelocity
-        root.AssemblyLinearVelocity = Vector3.new(
-            currentVel.X * 0.9,
-            currentVel.Y, 
-            currentVel.Z * 0.9
-        )
+        StatusLabel.Text = "STATUS: BRAKING"
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
+        
+        -- Reverse/Brake Force
+        local att = seat:FindFirstChild("J30_Att")
+        local thrust = seat:FindFirstChild("J30_Thrust")
+        if thrust then thrust.Force = Vector3.new(0, 0, Config.BoostPower) end
+        
+    else
+        StatusLabel.Text = "STATUS: IDLE"
+        StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200) -- Grey
+        
+        -- Remove Force when not pressing keys
+        local thrust = seat:FindFirstChild("J30_Thrust")
+        if thrust then thrust:Destroy() end
     end
 end)
 
