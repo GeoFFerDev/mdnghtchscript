@@ -1,23 +1,21 @@
--- [[ JOSEPEDOV19: GEAR RATIO HACKER ]] --
--- Features: Transmission Tuning (Stable Speed), Traffic Jammer, Instant Torque
--- Optimized for Delta | Fixes "Glitching" by keeping physics normal
+-- [[ JOSEPEDOV20: SERVER INJECTION ]] --
+-- Features: RemoteEvent Exploitation (Server-Sided Power), Traffic Jammer
+-- Optimized for Delta | Based on "Aspiration.txt" Logs
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
 -- === CONFIGURATION ===
 local Config = {
-    SpeedEnabled = false,
     TrafficBlocked = false,
-    -- Tuning Values
-    HackedRatio = 0.2,      -- Lower = Higher Top Speed (0.2 is insane speed)
-    HackedTorque = 15000,   -- Force to turn the taller gears
+    -- God Mode Turbo Stats
+    HackedBoost = 5000, -- Normal is ~15. 5000 is insane speed.
+    HackedCount = 4     -- Quad Turbo
 }
 
--- === TRAFFIC JAMMER (KEEPING THIS!) ===
+-- === 1. TRAFFIC JAMMER (The Working Hook) ===
 local function InstallTrafficHook()
     local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
     if event then
@@ -36,25 +34,25 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV19_UI"
+ScreenGui.Name = "JOSEPEDOV20_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 220)
+MainFrame.Size = UDim2.new(0, 220, 0, 180) 
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BackgroundColor3 = Color3.fromRGB(5, 10, 20) -- Deep Ocean
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(255, 215, 0) -- Gold
+MainFrame.BorderColor3 = Color3.fromRGB(0, 150, 255)
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV19"
+Title.Text = "JOSEPEDOV20"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 215, 0)
+Title.TextColor3 = Color3.fromRGB(0, 150, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
@@ -96,91 +94,86 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [BUTTON] 2. TRANSMISSION HACK (The Stable Speed)
-local TuneBtn = Instance.new("TextButton")
-TuneBtn.Size = UDim2.new(0.9, 0, 0, 40)
-TuneBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
-TuneBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-TuneBtn.Text = "⚙️ Ratio Hack: OFF"
-TuneBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TuneBtn.Font = Enum.Font.GothamBold
-TuneBtn.TextSize = 14
-TuneBtn.Parent = MainFrame
-Instance.new("UICorner", TuneBtn).CornerRadius = UDim.new(0, 6)
+-- [BUTTON] 2. INJECT GOD TURBO (The New Hack)
+local InjectBtn = Instance.new("TextButton")
+InjectBtn.Size = UDim2.new(0.9, 0, 0, 40)
+InjectBtn.Position = UDim2.new(0.05, 0, 0.50, 0)
+InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+InjectBtn.Text = "💉 Inject God Turbo"
+InjectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+InjectBtn.Font = Enum.Font.GothamBold
+InjectBtn.TextSize = 14
+InjectBtn.Parent = MainFrame
+Instance.new("UICorner", InjectBtn).CornerRadius = UDim.new(0, 6)
 
-TuneBtn.MouseButton1Click:Connect(function()
-    Config.SpeedEnabled = not Config.SpeedEnabled
-    if Config.SpeedEnabled then
-        TuneBtn.Text = "⚙️ Ratio Hack: ACTIVE"
-        TuneBtn.BackgroundColor3 = Color3.fromRGB(255, 215, 0) -- Gold
-        TuneBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-    else
-        TuneBtn.Text = "⚙️ Ratio Hack: OFF"
-        TuneBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        TuneBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    end
-end)
-
--- [BUTTON] 3. PANIC (Reset Stats)
-local ResetBtn = Instance.new("TextButton")
-ResetBtn.Size = UDim2.new(0.9, 0, 0, 40)
-ResetBtn.Position = UDim2.new(0.05, 0, 0.70, 0)
-ResetBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-ResetBtn.Text = "⚠️ RESET STATS"
-ResetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ResetBtn.Font = Enum.Font.GothamBold
-ResetBtn.TextSize = 14
-ResetBtn.Parent = MainFrame
-Instance.new("UICorner", ResetBtn).CornerRadius = UDim.new(0, 6)
-
-ResetBtn.MouseButton1Click:Connect(function()
-    Config.SpeedEnabled = false
-    TuneBtn.Text = "⚙️ Ratio Hack: OFF"
-    TuneBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-end)
-
--- === TUNING LOOP (Runs every frame to overwrite car settings) ===
-RunService.RenderStepped:Connect(function()
-    if not Config.SpeedEnabled then return end
-    
+InjectBtn.MouseButton1Click:Connect(function()
     local char = player.Character
-    if not char then return end
-    local humanoid = char:FindFirstChild("Humanoid")
-    if not humanoid or not humanoid.SeatPart then return end
-    
-    local car = humanoid.SeatPart.Parent
-    -- Find the "Tune" Module in the car
-    local tuneModule = car:FindFirstChild("A-Chassis Tune")
-    
-    if tuneModule then
-        -- We try to update the values inside the module environment
-        local success, tune = pcall(require, tuneModule)
-        if success and tune then
-            -- 1. HACK GEAR RATIOS (Speed Source)
-            -- Normal FinalDrive is ~3.0. We set it to 0.2
-            -- This makes wheels spin 15x faster for same RPM
-            tune.FinalDrive = Config.HackedRatio
+    if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
+        local car = char.Humanoid.SeatPart.Parent
+        
+        -- 1. Find the Remote Event
+        -- Path from your logs: ReplicatedStorage.Modules.Modules.Network.RemoteEvent
+        local remote = ReplicatedStorage:FindFirstChild("Modules") 
+            and ReplicatedStorage.Modules:FindFirstChild("Modules") 
+            and ReplicatedStorage.Modules.Modules:FindFirstChild("Network") 
+            and ReplicatedStorage.Modules.Modules.Network:FindFirstChild("RemoteEvent")
             
-            -- 2. HACK TORQUE (Power Source)
-            -- We need more power to turn these "heavy" gears
-            tune.Horsepower = 10000 
-            tune.Torque = Config.HackedTorque
-            tune.PeakRPM = 9000
-            tune.Redline = 10000
+        -- 2. Find the Car ID
+        -- Your log showed "143". This is likely an Attribute on the Car Value.
+        local carVal = car:FindFirstChild("Car") and car.Car.Value or car
+        local carID = carVal:GetAttribute("VehicleId") or carVal:GetAttribute("ID")
+        
+        -- Fallback: If we can't find ID, try to guess or use the log's number if consistent
+        -- But "143" likely changes per car. We rely on finding the Attribute.
+        
+        if remote and carID then
+            -- 3. FIRE THE EXPLOIT
+            -- We replicate the log structure exactly
+            -- Args: "SetAspiration", CarID, "Turbo", {Stats Table}
             
-            -- 3. APPLY TO ATTRIBUTES (Just in case)
-            -- The game script sometimes reads these instead of the module
-            local carVal = car:FindFirstChild("Car") and car.Car.Value or car
-            if carVal then
-                carVal:SetAttribute("Torque", Config.HackedTorque)
-                carVal:SetAttribute("Horsepower", 10000)
-                carVal:SetAttribute("MaxSpeed", 999)
+            local hackedStats = {
+                ["Turbochargers"] = Config.HackedCount, -- 4 Turbos
+                ["T_Boost"] = Config.HackedBoost,       -- 5000 PSI per turbo
+                ["Superchargers"] = 0,
+                ["S_Boost"] = 0
+            }
+            
+            remote:FireServer("SetAspiration", carID, "Turbo", hackedStats)
+            
+            InjectBtn.Text = "✅ SENT TO SERVER!"
+            InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+            
+            -- Optional: Fire local event too (UpdateTune) just to be sure
+            local tuneEvent = carVal:FindFirstChild("TuneUpdatedEvent")
+            if tuneEvent then
+               -- We can try firing this too, but the Server Remote is the main target
             end
+            
+        else
+            if not remote then InjectBtn.Text = "❌ Remote Not Found" end
+            if not carID then InjectBtn.Text = "❌ Car ID Not Found" end
+            InjectBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
         end
+    else
+        InjectBtn.Text = "⚠️ Sit in Driver Seat"
     end
+    
+    task.wait(2)
+    InjectBtn.Text = "💉 Inject God Turbo"
+    InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
 end)
 
--- Close Button
+-- Minimize Logic
+local MinBtn = Instance.new("TextButton")
+MinBtn.Text = "-"
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(0.70, 0, 0, 0)
+MinBtn.BackgroundTransparency = 1
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.Parent = MainFrame
+MinBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
+
+-- Close
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Text = "X"
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
