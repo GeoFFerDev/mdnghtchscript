@@ -1,26 +1,22 @@
--- [[ JOSEPEDOV28: DIRECT CAR INJECTOR ]] --
--- Features: Direct Model Injection, Full Table Merge, Traffic Jammer
--- Optimized for Delta | Target: "Lf20Besaya's Car" Root
+-- [[ JOSEPEDOV29: VELOCITY AMPLIFIER ]] --
+-- Features: Exponential Speed Boost, Traffic Jammer, Adjustable Power
+-- Optimized for Delta | Bypasses "Cached Stats" by amplifying physics directly
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
 -- === CONFIGURATION ===
 local Config = {
+    SpeedEnabled = false,
     TrafficBlocked = false,
-    -- God Mode Stats
-    Horsepower = 60000,
-    Torque = 25000,
-    Redline = 13000,
-    MaxSpeed = 999,
-    Turbochargers = 4,
-    T_Boost = 5000,
-    FinalDrive = 0.3
+    Multiplier = 1.02, -- 2% speed gain per frame (Exponential growth)
+    MaxSpeed = 600,    -- Cap speed to prevent crashing game
 }
 
--- === 1. TRAFFIC JAMMER ===
+-- === 1. TRAFFIC JAMMER (The Working Hook) ===
 local function InstallTrafficHook()
     local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
     if event then
@@ -39,25 +35,25 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV28_UI"
+ScreenGui.Name = "JOSEPEDOV29_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 220)
+MainFrame.Size = UDim2.new(0, 220, 0, 260)
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 25, 15) -- Forest Green
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(50, 255, 50) -- Neon Green
+MainFrame.BorderColor3 = Color3.fromRGB(255, 50, 150) -- Hot Pink
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV28"
+Title.Text = "JOSEPEDOV29"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(50, 255, 50)
+Title.TextColor3 = Color3.fromRGB(255, 50, 150)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
@@ -65,7 +61,7 @@ Title.Parent = MainFrame
 -- [BUTTON] 1. KILL TRAFFIC
 local TrafficBtn = Instance.new("TextButton")
 TrafficBtn.Size = UDim2.new(0.9, 0, 0, 40)
-TrafficBtn.Position = UDim2.new(0.05, 0, 0.20, 0)
+TrafficBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
 TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 TrafficBtn.Text = "🚫 Kill Traffic Signal"
 TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -99,91 +95,111 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [BUTTON] 2. INJECT DIRECT TUNE
-local InjectBtn = Instance.new("TextButton")
-InjectBtn.Size = UDim2.new(0.9, 0, 0, 50)
-InjectBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
-InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-InjectBtn.Text = "💉 INJECT DIRECT TUNE\n(Target: Car Model)"
-InjectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-InjectBtn.Font = Enum.Font.GothamBold
-InjectBtn.TextSize = 14
-InjectBtn.Parent = MainFrame
-Instance.new("UICorner", InjectBtn).CornerRadius = UDim.new(0, 6)
+-- [CONTROLS] POWER ADJUSTMENT
+local PowerLabel = Instance.new("TextLabel")
+PowerLabel.Text = "Boost Power: 2%"
+PowerLabel.Size = UDim2.new(0.9, 0, 0, 20)
+PowerLabel.Position = UDim2.new(0.05, 0, 0.35, 0)
+PowerLabel.BackgroundTransparency = 1
+PowerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+PowerLabel.Font = Enum.Font.GothamBold
+PowerLabel.TextSize = 14
+PowerLabel.Parent = MainFrame
 
-InjectBtn.MouseButton1Click:Connect(function()
-    print("=== JOSEPEDOV28 DEBUG ===")
+local MinusBtn = Instance.new("TextButton")
+MinusBtn.Text = "-"
+MinusBtn.Size = UDim2.new(0.4, 0, 0, 30)
+MinusBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
+MinusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinusBtn.Parent = MainFrame
+
+local PlusBtn = Instance.new("TextButton")
+PlusBtn.Text = "+"
+PlusBtn.Size = UDim2.new(0.4, 0, 0, 30)
+PlusBtn.Position = UDim2.new(0.55, 0, 0.45, 0)
+PlusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlusBtn.Parent = MainFrame
+
+MinusBtn.MouseButton1Click:Connect(function()
+    Config.Multiplier = math.max(1.005, Config.Multiplier - 0.005)
+    local percent = math.floor((Config.Multiplier - 1) * 1000) / 10
+    PowerLabel.Text = "Boost Power: " .. percent .. "%"
+end)
+
+PlusBtn.MouseButton1Click:Connect(function()
+    Config.Multiplier = math.min(1.10, Config.Multiplier + 0.005)
+    local percent = math.floor((Config.Multiplier - 1) * 1000) / 10
+    PowerLabel.Text = "Boost Power: " .. percent .. "%"
+end)
+
+-- [BUTTON] 2. ACTIVATE AMPLIFIER
+local AmpBtn = Instance.new("TextButton")
+AmpBtn.Size = UDim2.new(0.9, 0, 0, 50)
+AmpBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
+AmpBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+AmpBtn.Text = "🚀 LIMIT BREAKER: OFF"
+AmpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AmpBtn.Font = Enum.Font.GothamBold
+AmpBtn.TextSize = 14
+AmpBtn.Parent = MainFrame
+Instance.new("UICorner", AmpBtn).CornerRadius = UDim.new(0, 6)
+
+AmpBtn.MouseButton1Click:Connect(function()
+    Config.SpeedEnabled = not Config.SpeedEnabled
+    if Config.SpeedEnabled then
+        AmpBtn.Text = "🚀 LIMIT BREAKER: ON"
+        AmpBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+    else
+        AmpBtn.Text = "🚀 LIMIT BREAKER: OFF"
+        AmpBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    end
+end)
+
+-- === PHYSICS AMPLIFIER LOOP ===
+-- This is the core logic. It runs every frame.
+RunService.Heartbeat:Connect(function()
+    if not Config.SpeedEnabled then return end
     
     local char = player.Character
-    if not char then warn("No Character"); return end
-    
+    if not char then return end
     local humanoid = char:FindFirstChild("Humanoid")
-    if humanoid and humanoid.SeatPart then
-        local driveSeat = humanoid.SeatPart
-        local car = driveSeat.Parent -- THIS IS "Lf20Besaya's Car"
-        
-        print("Target Car:", car.Name)
-        
-        -- 1. FIND COMPONENTS DIRECTLY IN CAR MODEL
-        -- Based on your correction: "It's all under Lf20besaya's Car"
-        local tuneModule = car:FindFirstChild("A-Chassis Tune")
-        local tuneEvent = car:FindFirstChild("TuneUpdatedEvent")
-        
-        if tuneModule and tuneEvent then
-            print("✅ Found Module & Event in Car Root!")
-            
-            -- 2. REQUIRE & CLONE
-            local success, original = pcall(require, tuneModule)
-            if success then
-                print("✅ Module Loaded. Merging Stats...")
-                
-                local finalTune = {}
-                for k, v in pairs(original) do
-                    finalTune[k] = v
-                end
-                
-                -- 3. OVERWRITE GOD STATS
-                finalTune.Horsepower = Config.Horsepower
-                finalTune.Torque = Config.Torque
-                finalTune.MaxTorque = Config.Torque
-                finalTune.PeakRPM = Config.Redline
-                finalTune.Redline = Config.Redline
-                finalTune.FinalDrive = Config.FinalDrive
-                finalTune.Turbochargers = Config.Turbochargers
-                finalTune.T_Boost = Config.T_Boost
-                finalTune.MaxSpeed = Config.MaxSpeed
-                
-                -- 4. FIRE!
-                tuneEvent:Fire(finalTune)
-                print("🔥 FIRED GOD MODE!")
-                
-                InjectBtn.Text = "✅ SUCCESS!"
-                InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-                
-                -- 5. VISUAL UPDATE
-                local values = car:FindFirstChild("Values")
-                if values then
-                    if values:FindFirstChild("Horsepower") then values.Horsepower.Value = Config.Horsepower end
-                    if values:FindFirstChild("Torque") then values.Torque.Value = Config.Torque end
-                    if values:FindFirstChild("BoostTurbo") then values.BoostTurbo.Value = Config.T_Boost end
-                end
-            else
-                warn("Failed to Require Module.")
-                InjectBtn.Text = "❌ Require Failed"
-            end
-        else
-            warn("Components Missing in Car Model:")
-            if not tuneModule then print("- A-Chassis Tune NOT FOUND") end
-            if not tuneEvent then print("- TuneUpdatedEvent NOT FOUND") end
-            InjectBtn.Text = "❌ Missing Parts"
-        end
-    else
-        InjectBtn.Text = "⚠️ Sit in Driver Seat"
-    end
+    if not humanoid or not humanoid.SeatPart then return end
     
-    task.wait(2)
-    InjectBtn.Text = "💉 INJECT DIRECT TUNE\n(Target: Car Model)"
-    InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+    local seat = humanoid.SeatPart
+    local car = seat.Parent
+    local root = car.PrimaryPart or seat 
+    
+    -- ONLY BOOST WHEN HOLDING GAS
+    if seat.Throttle > 0 then
+        -- 1. Get Current Velocity
+        local currentVel = root.AssemblyLinearVelocity
+        local speed = currentVel.Magnitude
+        
+        -- 2. Check if we are below MaxSpeed
+        if speed < Config.MaxSpeed then
+            -- 3. AMPLIFY
+            -- We multiply X and Z (Movement) but keep Y (Gravity) safe
+            -- This makes you accelerate 2% faster every single frame.
+            -- 100 -> 102 -> 104 -> 106... it grows incredibly fast.
+            
+            root.AssemblyLinearVelocity = Vector3.new(
+                currentVel.X * Config.Multiplier,
+                currentVel.Y, -- Keep Gravity normal!
+                currentVel.Z * Config.Multiplier
+            )
+        end
+        
+    elseif seat.Throttle < 0 then
+        -- Optional: Improved Braking
+        local currentVel = root.AssemblyLinearVelocity
+        root.AssemblyLinearVelocity = Vector3.new(
+            currentVel.X * 0.9,
+            currentVel.Y, 
+            currentVel.Z * 0.9
+        )
+    end
 end)
 
 -- Minimize Logic
