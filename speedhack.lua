@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV32: THE CRUISER ]] --
--- Features: Fixed 7000 Power, One-Tap Toggle, Traffic Jammer
--- Optimized for Delta | "Sweet Spot" Edition
+-- [[ JOSEPEDOV33: INTELLIGENT BOOSTER ]] --
+-- Features: Gas Pedal Detection (Dual Check), 7000 Power, Traffic Jammer
+-- Optimized for Delta | "Arm & Drive" System
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,8 +11,8 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000,  -- The Sweet Spot
-    IsActive = false    -- Toggle State
+    BoostPower = 7000,  -- Sweet Spot
+    IsArmed = false     -- Master Switch
 }
 
 -- === 1. TRAFFIC JAMMER ===
@@ -34,25 +34,25 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV32_UI"
+ScreenGui.Name = "JOSEPEDOV33_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 200, 0, 160) -- Very Compact
-MainFrame.Position = UDim2.new(0.05, 0, 0.3, 0) -- Left side, easy reach
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.Size = UDim2.new(0, 200, 0, 160)
+MainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(0, 255, 100) -- Mint Green
+MainFrame.BorderColor3 = Color3.fromRGB(255, 200, 0) -- Gold
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J32: CRUISER"
+Title.Text = "J33: SMART BOOST"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 255, 100)
+Title.TextColor3 = Color3.fromRGB(255, 200, 0)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 16
 Title.Parent = MainFrame
@@ -94,12 +94,12 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [BUTTON 2] ROCKET TOGGLE (The Main Control)
+-- [BUTTON 2] ARMING SWITCH
 local BoostBtn = Instance.new("TextButton")
-BoostBtn.Size = UDim2.new(0.9, 0, 0, 60) -- Big Target
+BoostBtn.Size = UDim2.new(0.9, 0, 0, 60)
 BoostBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
 BoostBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-BoostBtn.Text = "ROCKET: OFF\n(Tap to Engage)"
+BoostBtn.Text = "SYSTEM: OFF\n(Tap to Arm)"
 BoostBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 BoostBtn.Font = Enum.Font.GothamBold
 BoostBtn.TextSize = 16
@@ -107,76 +107,103 @@ BoostBtn.Parent = MainFrame
 Instance.new("UICorner", BoostBtn).CornerRadius = UDim.new(0, 6)
 
 BoostBtn.MouseButton1Click:Connect(function()
-    Config.IsActive = not Config.IsActive
+    Config.IsArmed = not Config.IsArmed
     
-    if Config.IsActive then
-        BoostBtn.Text = "🚀 MOVING! (7000)\n(Tap to Stop)"
-        BoostBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- Green
+    if Config.IsArmed then
+        BoostBtn.Text = "⚠️ ARMED (7000)\n(Press Gas to Fire)"
+        BoostBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 0) -- Gold/Yellow
         BoostBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
-        BoostBtn.Text = "ROCKET: OFF\n(Tap to Engage)"
+        BoostBtn.Text = "SYSTEM: OFF\n(Tap to Arm)"
         BoostBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         BoostBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     end
 end)
 
--- === PHYSICS LOOP ===
+-- === PHYSICS LOOP (Input Detection) ===
 RunService.Heartbeat:Connect(function()
-    -- Only run if Toggled ON
-    if not Config.IsActive then 
-        -- Cleanup forces if we just turned it off
-        local char = player.Character
-        if char then
-            local humanoid = char:FindFirstChild("Humanoid")
-            if humanoid and humanoid.SeatPart then
-                 local thrust = humanoid.SeatPart:FindFirstChild("J32_Thrust")
-                 if thrust then thrust:Destroy() end
-            end
+    local char = player.Character
+    if not char then return end
+    
+    -- 1. Find Seat & Car
+    local driveSeat = nil
+    local car = nil
+    
+    -- Try Humanoid Seat
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid and humanoid.SeatPart then
+        driveSeat = humanoid.SeatPart
+        car = driveSeat.Parent
+    else
+        -- Try Manual Search (Lf20Besaya's Car)
+        car = Workspace:FindFirstChild("Lf20Besaya's Car")
+        if car then driveSeat = car:FindFirstChild("DriveSeat") end
+    end
+    
+    -- 2. Clean up if not seated or not armed
+    if not driveSeat or not Config.IsArmed then
+        if driveSeat then
+             local thrust = driveSeat:FindFirstChild("J33_Thrust")
+             if thrust then thrust:Destroy() end
         end
         return 
     end
     
-    local char = player.Character
-    if not char then return end
+    -- 3. DETECT GAS INPUT (The Dual Check)
+    local isPressingGas = false
     
-    -- Find Seat (Auto-detect)
-    local driveSeat = nil
-    
-    -- Try Humanoid Seat first
-    local humanoid = char:FindFirstChild("Humanoid")
-    if humanoid and humanoid.SeatPart then
-        driveSeat = humanoid.SeatPart
-    else
-        -- Try finding car model manually if not sitting "officially"
-        local carModel = Workspace:FindFirstChild("Lf20Besaya's Car")
-        if carModel then driveSeat = carModel:FindFirstChild("DriveSeat") end
+    -- Check A: Standard Roblox Input
+    if driveSeat.Throttle > 0 then
+        isPressingGas = true
     end
     
-    if driveSeat then
-        -- CREATE FORCE
-        local att = driveSeat:FindFirstChild("J32_Att")
-        local thrust = driveSeat:FindFirstChild("J32_Thrust")
+    -- Check B: A-Chassis Values (Fixes the V30 Bug)
+    if not isPressingGas and car then
+        local carVal = car:FindFirstChild("Car") and car.Car.Value or car
+        local valFolder = carVal:FindFirstChild("Values") or car:FindFirstChild("Values")
+        if valFolder then
+            local throttleVal = valFolder:FindFirstChild("Throttle")
+            if throttleVal and throttleVal.Value > 0 then
+                isPressingGas = true
+            end
+        end
+    end
+
+    -- 4. FIRE ROCKET
+    if isPressingGas then
+        -- Visual Feedback (Optional)
+        BoostBtn.Text = "🚀 FIRING! 🚀"
+        BoostBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green
+        
+        local att = driveSeat:FindFirstChild("J33_Att")
+        local thrust = driveSeat:FindFirstChild("J33_Thrust")
         
         if not att then
             att = Instance.new("Attachment", driveSeat)
-            att.Name = "J32_Att"
+            att.Name = "J33_Att"
         end
         
         if not thrust then
             thrust = Instance.new("VectorForce", driveSeat)
-            thrust.Name = "J32_Thrust"
+            thrust.Name = "J33_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-            -- Negative Z is Forward for most cars
             thrust.Force = Vector3.new(0, 0, -Config.BoostPower)
         end
         
-        -- Ensure force is set (in case something reset it)
         thrust.Force = Vector3.new(0, 0, -Config.BoostPower)
+        
+    else
+        -- IDLE (Armed but waiting)
+        BoostBtn.Text = "⚠️ ARMED (7000)\n(Press Gas to Fire)"
+        BoostBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+        
+        local thrust = driveSeat:FindFirstChild("J33_Thrust")
+        if thrust then thrust:Destroy() end
     end
 end)
 
--- Close Button
+-- Close
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Text = "X"
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
