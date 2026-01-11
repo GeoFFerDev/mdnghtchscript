@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV26: SPLIT-LINK INJECTOR ]] --
--- Features: Character-to-Car Injection, Full Table Merge, Traffic Jammer
--- Optimized for Delta | Fixes "Missing Data" by finding the Module in Character
+-- [[ JOSEPEDOV28: DIRECT CAR INJECTOR ]] --
+-- Features: Direct Model Injection, Full Table Merge, Traffic Jammer
+-- Optimized for Delta | Target: "Lf20Besaya's Car" Root
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,16 +11,16 @@ local player = Players.LocalPlayer
 local Config = {
     TrafficBlocked = false,
     -- God Mode Stats
-    Horsepower = 60000,    -- 60k HP
-    Torque = 25000,        -- 25k Torque
-    Redline = 12000,       -- High RPM
-    MaxSpeed = 999,        -- Infinite Speed
-    Turbochargers = 4,     -- Quad Turbo
-    T_Boost = 5000,        -- 5k Boost
-    FinalDrive = 0.3       -- Low Ratio = 600+ MPH
+    Horsepower = 60000,
+    Torque = 25000,
+    Redline = 13000,
+    MaxSpeed = 999,
+    Turbochargers = 4,
+    T_Boost = 5000,
+    FinalDrive = 0.3
 }
 
--- === 1. TRAFFIC JAMMER (Working) ===
+-- === 1. TRAFFIC JAMMER ===
 local function InstallTrafficHook()
     local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
     if event then
@@ -39,25 +39,25 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV26_UI"
+ScreenGui.Name = "JOSEPEDOV28_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 220, 0, 220)
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 25, 15) -- Forest Green
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(255, 0, 255) -- Neon Purple
+MainFrame.BorderColor3 = Color3.fromRGB(50, 255, 50) -- Neon Green
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV26"
+Title.Text = "JOSEPEDOV28"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 0, 255)
+Title.TextColor3 = Color3.fromRGB(50, 255, 50)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
@@ -99,12 +99,12 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [BUTTON] 2. INJECT SPLIT TUNE
+-- [BUTTON] 2. INJECT DIRECT TUNE
 local InjectBtn = Instance.new("TextButton")
 InjectBtn.Size = UDim2.new(0.9, 0, 0, 50)
 InjectBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
-InjectBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 150)
-InjectBtn.Text = "💉 INJECT SPLIT TUNE\n(Character -> Car)"
+InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+InjectBtn.Text = "💉 INJECT DIRECT TUNE\n(Target: Car Model)"
 InjectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 InjectBtn.Font = Enum.Font.GothamBold
 InjectBtn.TextSize = 14
@@ -112,108 +112,78 @@ InjectBtn.Parent = MainFrame
 Instance.new("UICorner", InjectBtn).CornerRadius = UDim.new(0, 6)
 
 InjectBtn.MouseButton1Click:Connect(function()
-    print("=== JOSEPEDOV26 DEBUG ===")
+    print("=== JOSEPEDOV28 DEBUG ===")
     
     local char = player.Character
-    if not char then 
-        warn("Character not found!")
-        return 
-    end
+    if not char then warn("No Character"); return end
     
-    -- 1. FIND MODULE (Inside Character)
-    local tuneModule = char:FindFirstChild("A-Chassis Tune")
-    if tuneModule then
-        print("✅ FOUND TUNE MODULE IN CHARACTER!")
-    else
-        warn("❌ Module NOT in Character. Searching Descendants...")
-        -- Fallback: Search deeper just in case
-        for _, v in pairs(char:GetDescendants()) do
-            if v.Name == "A-Chassis Tune" and v:IsA("ModuleScript") then
-                tuneModule = v
-                print("✅ Found Module deep in Character:", v:GetFullName())
-                break
-            end
-        end
-    end
-
-    -- 2. FIND EVENT (Inside Car)
     local humanoid = char:FindFirstChild("Humanoid")
     if humanoid and humanoid.SeatPart then
-        local car = humanoid.SeatPart.Parent
-        print("Car Found:", car.Name)
+        local driveSeat = humanoid.SeatPart
+        local car = driveSeat.Parent -- THIS IS "Lf20Besaya's Car"
         
+        print("Target Car:", car.Name)
+        
+        -- 1. FIND COMPONENTS DIRECTLY IN CAR MODEL
+        -- Based on your correction: "It's all under Lf20besaya's Car"
+        local tuneModule = car:FindFirstChild("A-Chassis Tune")
         local tuneEvent = car:FindFirstChild("TuneUpdatedEvent")
-        if not tuneEvent then
-             -- Try searching deep in car
-             for _, v in pairs(car:GetDescendants()) do
-                 if v.Name == "TuneUpdatedEvent" then
-                     tuneEvent = v
-                     print("✅ Found Event deep in Car:", v:GetFullName())
-                     break
-                 end
-             end
-        else
-            print("✅ FOUND EVENT IN CAR ROOT!")
-        end
         
-        -- 3. THE MERGE & FIRE
         if tuneModule and tuneEvent then
-            local success, originalTune = pcall(require, tuneModule)
+            print("✅ Found Module & Event in Car Root!")
+            
+            -- 2. REQUIRE & CLONE
+            local success, original = pcall(require, tuneModule)
             if success then
-                print("Module Loaded. Cloning Table...")
+                print("✅ Module Loaded. Merging Stats...")
                 
-                -- CLONE TABLE (Important!)
-                local newTune = {}
-                for k, v in pairs(originalTune) do
-                    newTune[k] = v
+                local finalTune = {}
+                for k, v in pairs(original) do
+                    finalTune[k] = v
                 end
                 
-                -- INJECT GOD STATS
-                newTune.Horsepower = Config.Horsepower
-                newTune.Torque = Config.Torque
-                newTune.MaxTorque = Config.Torque
-                newTune.PeakRPM = Config.Redline
-                newTune.Redline = Config.Redline + 1000
-                newTune.FinalDrive = Config.FinalDrive
-                newTune.Turbochargers = Config.Turbochargers
-                newTune.T_Boost = Config.T_Boost
-                newTune.MaxSpeed = Config.MaxSpeed
+                -- 3. OVERWRITE GOD STATS
+                finalTune.Horsepower = Config.Horsepower
+                finalTune.Torque = Config.Torque
+                finalTune.MaxTorque = Config.Torque
+                finalTune.PeakRPM = Config.Redline
+                finalTune.Redline = Config.Redline
+                finalTune.FinalDrive = Config.FinalDrive
+                finalTune.Turbochargers = Config.Turbochargers
+                finalTune.T_Boost = Config.T_Boost
+                finalTune.MaxSpeed = Config.MaxSpeed
                 
-                -- FIRE!
-                tuneEvent:Fire(newTune)
-                print("🔥 FIRED GOD TUNE INTO CAR!")
+                -- 4. FIRE!
+                tuneEvent:Fire(finalTune)
+                print("🔥 FIRED GOD MODE!")
                 
-                InjectBtn.Text = "✅ TUNE INJECTED!"
+                InjectBtn.Text = "✅ SUCCESS!"
                 InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
                 
-                -- 4. UPDATE "VALUES" FOLDER (Visuals)
-                -- You mentioned a "Values" folder in the car. Let's update that too.
-                local carVal = car:FindFirstChild("Car") and car.Car.Value or car
-                local valFolder = carVal:FindFirstChild("Values") or car:FindFirstChild("Values")
-                
-                if valFolder then
-                    print("Updating Values Folder...")
-                    if valFolder:FindFirstChild("Horsepower") then valFolder.Horsepower.Value = Config.Horsepower end
-                    if valFolder:FindFirstChild("Torque") then valFolder.Torque.Value = Config.Torque end
-                    if valFolder:FindFirstChild("BoostTurbo") then valFolder.BoostTurbo.Value = Config.T_Boost end
+                -- 5. VISUAL UPDATE
+                local values = car:FindFirstChild("Values")
+                if values then
+                    if values:FindFirstChild("Horsepower") then values.Horsepower.Value = Config.Horsepower end
+                    if values:FindFirstChild("Torque") then values.Torque.Value = Config.Torque end
+                    if values:FindFirstChild("BoostTurbo") then values.BoostTurbo.Value = Config.T_Boost end
                 end
-                
             else
                 warn("Failed to Require Module.")
-                InjectBtn.Text = "❌ Module Error"
+                InjectBtn.Text = "❌ Require Failed"
             end
         else
-            if not tuneModule then warn("Missing Module in Character") end
-            if not tuneEvent then warn("Missing Event in Car") end
-            InjectBtn.Text = "❌ Components Missing"
+            warn("Components Missing in Car Model:")
+            if not tuneModule then print("- A-Chassis Tune NOT FOUND") end
+            if not tuneEvent then print("- TuneUpdatedEvent NOT FOUND") end
+            InjectBtn.Text = "❌ Missing Parts"
         end
     else
         InjectBtn.Text = "⚠️ Sit in Driver Seat"
     end
     
     task.wait(2)
-    InjectBtn.Text = "💉 INJECT SPLIT TUNE\n(Character -> Car)"
-    InjectBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 150)
+    InjectBtn.Text = "💉 INJECT DIRECT TUNE\n(Target: Car Model)"
+    InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
 end)
 
 -- Minimize Logic
