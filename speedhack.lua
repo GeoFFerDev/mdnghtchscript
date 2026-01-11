@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV18: GRAVITY DRIVE ]] --
--- Features: Artificial Gravity Physics, Massless Acceleration, Traffic Jammer
--- Optimized for Delta | Fixes "Stuck in 1st Gear" by preserving Wheel Speed
+-- [[ JOSEPEDOV19: GEAR RATIO HACKER ]] --
+-- Features: Transmission Tuning (Stable Speed), Traffic Jammer, Instant Torque
+-- Optimized for Delta | Fixes "Glitching" by keeping physics normal
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,8 +12,9 @@ local player = Players.LocalPlayer
 local Config = {
     SpeedEnabled = false,
     TrafficBlocked = false,
-    Downforce = 1000,   -- Artificial Gravity (Keeps car on road)
-    ForwardForce = 5000, -- Extra Push (Adjust if too fast)
+    -- Tuning Values
+    HackedRatio = 0.2,      -- Lower = Higher Top Speed (0.2 is insane speed)
+    HackedTorque = 15000,   -- Force to turn the taller gears
 }
 
 -- === TRAFFIC JAMMER (KEEPING THIS!) ===
@@ -35,25 +36,25 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV18_UI"
+ScreenGui.Name = "JOSEPEDOV19_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 220, 0, 220)
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20) -- Dark Slate
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(255, 165, 0) -- Orange Theme
+MainFrame.BorderColor3 = Color3.fromRGB(255, 215, 0) -- Gold
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV18"
+Title.Text = "JOSEPEDOV19"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 165, 0)
+Title.TextColor3 = Color3.fromRGB(255, 215, 0)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
@@ -74,7 +75,7 @@ TrafficBtn.MouseButton1Click:Connect(function()
     Config.TrafficBlocked = not Config.TrafficBlocked
     if Config.TrafficBlocked then
         TrafficBtn.Text = "Traffic: DEAD 💀"
-        TrafficBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        TrafficBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
         local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
         if event then
             for _, connection in pairs(getconnections(event.OnClientEvent)) do
@@ -95,46 +96,37 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [BUTTON] 2. GRAVITY DRIVE (The Fix)
-local SpeedBtn = Instance.new("TextButton")
-SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
-SpeedBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
-SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-SpeedBtn.Text = "🚀 Gravity Drive: OFF"
-SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedBtn.Font = Enum.Font.GothamBold
-SpeedBtn.TextSize = 14
-SpeedBtn.Parent = MainFrame
-Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
+-- [BUTTON] 2. TRANSMISSION HACK (The Stable Speed)
+local TuneBtn = Instance.new("TextButton")
+TuneBtn.Size = UDim2.new(0.9, 0, 0, 40)
+TuneBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
+TuneBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TuneBtn.Text = "⚙️ Ratio Hack: OFF"
+TuneBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TuneBtn.Font = Enum.Font.GothamBold
+TuneBtn.TextSize = 14
+TuneBtn.Parent = MainFrame
+Instance.new("UICorner", TuneBtn).CornerRadius = UDim.new(0, 6)
 
-SpeedBtn.MouseButton1Click:Connect(function()
+TuneBtn.MouseButton1Click:Connect(function()
     Config.SpeedEnabled = not Config.SpeedEnabled
     if Config.SpeedEnabled then
-        SpeedBtn.Text = "🚀 Gravity Drive: ON"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-        SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+        TuneBtn.Text = "⚙️ Ratio Hack: ACTIVE"
+        TuneBtn.BackgroundColor3 = Color3.fromRGB(255, 215, 0) -- Gold
+        TuneBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
-        SpeedBtn.Text = "🚀 Gravity Drive: OFF"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        
-        -- Restore Mass
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
-            local car = char.Humanoid.SeatPart.Parent
-            for _, part in pairs(car:GetDescendants()) do
-                if part:IsA("BasePart") then part.Massless = false end
-            end
-        end
+        TuneBtn.Text = "⚙️ Ratio Hack: OFF"
+        TuneBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        TuneBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     end
 end)
 
--- [BUTTON] 3. EMERGENCY RESET
+-- [BUTTON] 3. PANIC (Reset Stats)
 local ResetBtn = Instance.new("TextButton")
 ResetBtn.Size = UDim2.new(0.9, 0, 0, 40)
 ResetBtn.Position = UDim2.new(0.05, 0, 0.70, 0)
 ResetBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-ResetBtn.Text = "⚠️ RESET PHYSICS"
+ResetBtn.Text = "⚠️ RESET STATS"
 ResetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ResetBtn.Font = Enum.Font.GothamBold
 ResetBtn.TextSize = 14
@@ -143,27 +135,12 @@ Instance.new("UICorner", ResetBtn).CornerRadius = UDim.new(0, 6)
 
 ResetBtn.MouseButton1Click:Connect(function()
     Config.SpeedEnabled = false
-    SpeedBtn.Text = "🚀 Gravity Drive: OFF"
-    SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    
-    local char = player.Character
-    if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
-        local seat = char.Humanoid.SeatPart
-        -- Destroy Artificial Gravity Forces
-        if seat:FindFirstChild("J18_Grav") then seat.J18_Grav:Destroy() end
-        if seat:FindFirstChild("J18_Push") then seat.J18_Push:Destroy() end
-        if seat:FindFirstChild("J18_Att") then seat.J18_Att:Destroy() end
-        
-        -- Restore Mass
-        local car = seat.Parent
-        for _, part in pairs(car:GetDescendants()) do
-            if part:IsA("BasePart") then part.Massless = false end
-        end
-    end
+    TuneBtn.Text = "⚙️ Ratio Hack: OFF"
+    TuneBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 end)
 
--- === PHYSICS LOOP ===
-RunService.Heartbeat:Connect(function()
+-- === TUNING LOOP (Runs every frame to overwrite car settings) ===
+RunService.RenderStepped:Connect(function()
     if not Config.SpeedEnabled then return end
     
     local char = player.Character
@@ -171,51 +148,35 @@ RunService.Heartbeat:Connect(function()
     local humanoid = char:FindFirstChild("Humanoid")
     if not humanoid or not humanoid.SeatPart then return end
     
-    local seat = humanoid.SeatPart
-    local car = seat.Parent
+    local car = humanoid.SeatPart.Parent
+    -- Find the "Tune" Module in the car
+    local tuneModule = car:FindFirstChild("A-Chassis Tune")
     
-    -- 1. MAKE CAR WEIGHTLESS (Every frame to fight resets)
-    for _, part in pairs(car:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Massless = true
+    if tuneModule then
+        -- We try to update the values inside the module environment
+        local success, tune = pcall(require, tuneModule)
+        if success and tune then
+            -- 1. HACK GEAR RATIOS (Speed Source)
+            -- Normal FinalDrive is ~3.0. We set it to 0.2
+            -- This makes wheels spin 15x faster for same RPM
+            tune.FinalDrive = Config.HackedRatio
+            
+            -- 2. HACK TORQUE (Power Source)
+            -- We need more power to turn these "heavy" gears
+            tune.Horsepower = 10000 
+            tune.Torque = Config.HackedTorque
+            tune.PeakRPM = 9000
+            tune.Redline = 10000
+            
+            -- 3. APPLY TO ATTRIBUTES (Just in case)
+            -- The game script sometimes reads these instead of the module
+            local carVal = car:FindFirstChild("Car") and car.Car.Value or car
+            if carVal then
+                carVal:SetAttribute("Torque", Config.HackedTorque)
+                carVal:SetAttribute("Horsepower", 10000)
+                carVal:SetAttribute("MaxSpeed", 999)
+            end
         end
-    end
-    
-    -- 2. SETUP ARTIFICIAL FORCES
-    local att = seat:FindFirstChild("J18_Att")
-    local gravForce = seat:FindFirstChild("J18_Grav")
-    local pushForce = seat:FindFirstChild("J18_Push")
-    
-    if not att then
-        att = Instance.new("Attachment", seat)
-        att.Name = "J18_Att"
-        
-        -- Artificial Gravity (Always Down relative to World)
-        gravForce = Instance.new("VectorForce")
-        gravForce.Name = "J18_Grav"
-        gravForce.Attachment0 = att
-        gravForce.RelativeTo = Enum.ActuatorRelativeTo.World 
-        gravForce.Parent = seat
-        
-        -- Artificial Engine (Always Forward relative to Car)
-        pushForce = Instance.new("VectorForce")
-        pushForce.Name = "J18_Push"
-        pushForce.Attachment0 = att
-        pushForce.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-        pushForce.Parent = seat
-    end
-    
-    -- 3. APPLY FORCES
-    -- Apply Downforce (Simulate Gravity so we don't fly)
-    gravForce.Force = Vector3.new(0, -Config.Downforce, 0)
-    
-    -- Apply Push (Assisted Acceleration)
-    if seat.Throttle > 0 then
-        pushForce.Force = Vector3.new(0, 0, -Config.ForwardForce) -- Push Forward
-    elseif seat.Throttle < 0 then
-        pushForce.Force = Vector3.new(0, 0, Config.ForwardForce) -- Brake/Reverse
-    else
-        pushForce.Force = Vector3.new(0, 0, 0)
     end
 end)
 
