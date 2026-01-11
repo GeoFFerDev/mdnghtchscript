@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV20: SERVER INJECTION ]] --
--- Features: RemoteEvent Exploitation (Server-Sided Power), Traffic Jammer
--- Optimized for Delta | Based on "Aspiration.txt" Logs
+-- [[ JOSEPEDOV21: MANUAL OVERRIDE ]] --
+-- Features: Manual Car ID Input, Debug Console Prints, Traffic Jammer
+-- Optimized for Delta | Solves "ID Not Found" by letting you type it
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,12 +10,11 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    -- God Mode Turbo Stats
-    HackedBoost = 5000, -- Normal is ~15. 5000 is insane speed.
-    HackedCount = 4     -- Quad Turbo
+    HackedBoost = 10000, -- Extreme Boost
+    HackedCount = 4
 }
 
--- === 1. TRAFFIC JAMMER (The Working Hook) ===
+-- === 1. TRAFFIC JAMMER (Working) ===
 local function InstallTrafficHook()
     local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
     if event then
@@ -34,25 +33,25 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV20_UI"
+ScreenGui.Name = "JOSEPEDOV21_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 180) 
+MainFrame.Size = UDim2.new(0, 220, 0, 230) -- Taller for Input Box
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(5, 10, 20) -- Deep Ocean
+MainFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5) -- Pure Black
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(0, 150, 255)
+MainFrame.BorderColor3 = Color3.fromRGB(255, 0, 255) -- Neon Purple
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV20"
+Title.Text = "JOSEPEDOV21"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 150, 255)
+Title.TextColor3 = Color3.fromRGB(255, 0, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
@@ -60,7 +59,7 @@ Title.Parent = MainFrame
 -- [BUTTON] 1. KILL TRAFFIC
 local TrafficBtn = Instance.new("TextButton")
 TrafficBtn.Size = UDim2.new(0.9, 0, 0, 40)
-TrafficBtn.Position = UDim2.new(0.05, 0, 0.20, 0)
+TrafficBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
 TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 TrafficBtn.Text = "🚫 Kill Traffic Signal"
 TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -94,10 +93,32 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [BUTTON] 2. INJECT GOD TURBO (The New Hack)
+-- [INPUT] CAR ID BOX
+local IDLabel = Instance.new("TextLabel")
+IDLabel.Text = "Car ID (Check Logs):"
+IDLabel.Size = UDim2.new(0.9, 0, 0, 20)
+IDLabel.Position = UDim2.new(0.05, 0, 0.40, 0)
+IDLabel.BackgroundTransparency = 1
+IDLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+IDLabel.Font = Enum.Font.GothamBold
+IDLabel.TextSize = 12
+IDLabel.Parent = MainFrame
+
+local IDBox = Instance.new("TextBox")
+IDBox.Size = UDim2.new(0.9, 0, 0, 30)
+IDBox.Position = UDim2.new(0.05, 0, 0.50, 0)
+IDBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+IDBox.TextColor3 = Color3.fromRGB(255, 255, 0) -- Yellow Text
+IDBox.Text = "143" -- Default from your logs
+IDBox.Font = Enum.Font.GothamBold
+IDBox.TextSize = 14
+IDBox.Parent = MainFrame
+Instance.new("UICorner", IDBox).CornerRadius = UDim.new(0, 6)
+
+-- [BUTTON] 2. INJECT GOD TURBO
 local InjectBtn = Instance.new("TextButton")
 InjectBtn.Size = UDim2.new(0.9, 0, 0, 40)
-InjectBtn.Position = UDim2.new(0.05, 0, 0.50, 0)
+InjectBtn.Position = UDim2.new(0.05, 0, 0.70, 0)
 InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
 InjectBtn.Text = "💉 Inject God Turbo"
 InjectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -111,47 +132,50 @@ InjectBtn.MouseButton1Click:Connect(function()
     if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
         local car = char.Humanoid.SeatPart.Parent
         
-        -- 1. Find the Remote Event
-        -- Path from your logs: ReplicatedStorage.Modules.Modules.Network.RemoteEvent
+        -- 1. Find Remote
         local remote = ReplicatedStorage:FindFirstChild("Modules") 
             and ReplicatedStorage.Modules:FindFirstChild("Modules") 
             and ReplicatedStorage.Modules.Modules:FindFirstChild("Network") 
             and ReplicatedStorage.Modules.Modules.Network:FindFirstChild("RemoteEvent")
             
-        -- 2. Find the Car ID
-        -- Your log showed "143". This is likely an Attribute on the Car Value.
+        -- 2. Determine ID (Auto or Manual)
         local carVal = car:FindFirstChild("Car") and car.Car.Value or car
-        local carID = carVal:GetAttribute("VehicleId") or carVal:GetAttribute("ID")
+        local detectedID = carVal:GetAttribute("VehicleId") or carVal:GetAttribute("ID") or carVal:GetAttribute("CarID")
         
-        -- Fallback: If we can't find ID, try to guess or use the log's number if consistent
-        -- But "143" likely changes per car. We rely on finding the Attribute.
+        -- DEBUG: Print all attributes to console (F9)
+        print("=== DEBUG JOSEPEDOV21 ===")
+        print("Attributes found on Car Value:")
+        for name, value in pairs(carVal:GetAttributes()) do
+            print(name, ":", value)
+        end
+        print("=========================")
         
-        if remote and carID then
-            -- 3. FIRE THE EXPLOIT
-            -- We replicate the log structure exactly
-            -- Args: "SetAspiration", CarID, "Turbo", {Stats Table}
-            
+        -- Use Detected ID if found, otherwise use TextBox
+        local finalID = detectedID
+        if not finalID then
+            finalID = tonumber(IDBox.Text)
+            print("Auto-detect failed. Using Manual ID:", finalID)
+        else
+            IDBox.Text = tostring(finalID) -- Update box with found ID
+            print("Auto-detected ID:", finalID)
+        end
+        
+        if remote and finalID then
             local hackedStats = {
-                ["Turbochargers"] = Config.HackedCount, -- 4 Turbos
-                ["T_Boost"] = Config.HackedBoost,       -- 5000 PSI per turbo
+                ["Turbochargers"] = Config.HackedCount,
+                ["T_Boost"] = Config.HackedBoost,
                 ["Superchargers"] = 0,
                 ["S_Boost"] = 0
             }
             
-            remote:FireServer("SetAspiration", carID, "Turbo", hackedStats)
+            -- FIRE THE EVENT
+            remote:FireServer("SetAspiration", finalID, "Turbo", hackedStats)
             
-            InjectBtn.Text = "✅ SENT TO SERVER!"
+            InjectBtn.Text = "✅ SENT! ID: " .. tostring(finalID)
             InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-            
-            -- Optional: Fire local event too (UpdateTune) just to be sure
-            local tuneEvent = carVal:FindFirstChild("TuneUpdatedEvent")
-            if tuneEvent then
-               -- We can try firing this too, but the Server Remote is the main target
-            end
-            
         else
-            if not remote then InjectBtn.Text = "❌ Remote Not Found" end
-            if not carID then InjectBtn.Text = "❌ Car ID Not Found" end
+            if not remote then InjectBtn.Text = "❌ Remote Missing" end
+            if not finalID then InjectBtn.Text = "❌ Invalid ID Type" end
             InjectBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
         end
     else
