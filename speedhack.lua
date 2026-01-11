@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV22: HYBRID GOD MODE ]] --
--- Features: Server Turbo Injection + Client Gear Tuning + Traffic Jammer
--- Optimized for Delta | Fixes "Missing Remote" & "Top Speed Cap"
+-- [[ JOSEPEDOV23: LOCAL OVERRIDE ]] --
+-- Features: Local Tune Injection (Bypasses Server), Traffic Jammer
+-- Optimized for Delta | Based on "Aspiration.txt" Local Event
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,8 +10,12 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    HackedBoost = 10000, -- Server Turbo
-    HackedCount = 4
+    -- The God Stats
+    GodHP = 50000,
+    GodTorque = 20000,
+    GodRedline = 15000,
+    GodBoost = 5000,
+    GodRatio = 0.5 -- Lower = Higher Top Speed
 }
 
 -- === 1. TRAFFIC JAMMER (Working) ===
@@ -31,46 +35,35 @@ local function InstallTrafficHook()
 end
 InstallTrafficHook()
 
--- === HELPER: FIND REMOTE RECURSIVELY ===
--- This fixes the "Missing Remote" error by searching deeper folders
-local function FindRemote(name, root)
-    for _, child in pairs(root:GetDescendants()) do
-        if child.Name == name and child:IsA("RemoteEvent") then
-            return child
-        end
-    end
-    return nil
-end
-
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV22_UI"
+ScreenGui.Name = "JOSEPEDOV23_UI"
 ScreenGui.Parent = game.CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 320) -- Taller for more options
+MainFrame.Size = UDim2.new(0, 220, 0, 220)
 MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 0, 0) -- Dark Red
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(0, 255, 255) -- Cyan
+MainFrame.BorderColor3 = Color3.fromRGB(255, 0, 0)
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Text = "JOSEPEDOV22"
+Title.Text = "JOSEPEDOV23"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 255, 255)
+Title.TextColor3 = Color3.fromRGB(255, 0, 0)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
 Title.Parent = MainFrame
 
 -- [BUTTON] 1. KILL TRAFFIC
 local TrafficBtn = Instance.new("TextButton")
-TrafficBtn.Size = UDim2.new(0.9, 0, 0, 35)
-TrafficBtn.Position = UDim2.new(0.05, 0, 0.12, 0)
+TrafficBtn.Size = UDim2.new(0.9, 0, 0, 40)
+TrafficBtn.Position = UDim2.new(0.05, 0, 0.20, 0)
 TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 TrafficBtn.Text = "🚫 Kill Traffic Signal"
 TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -104,58 +97,12 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- [INPUT] CAR ID BOX
-local IDLabel = Instance.new("TextLabel")
-IDLabel.Text = "Car ID (143):"
-IDLabel.Size = UDim2.new(0.4, 0, 0, 20)
-IDLabel.Position = UDim2.new(0.05, 0, 0.28, 0)
-IDLabel.BackgroundTransparency = 1
-IDLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-IDLabel.Font = Enum.Font.GothamBold
-IDLabel.TextSize = 12
-IDLabel.TextXAlignment = Enum.TextXAlignment.Left
-IDLabel.Parent = MainFrame
-
-local IDBox = Instance.new("TextBox")
-IDBox.Size = UDim2.new(0.4, 0, 0, 30)
-IDBox.Position = UDim2.new(0.05, 0, 0.35, 0)
-IDBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-IDBox.TextColor3 = Color3.fromRGB(255, 255, 0)
-IDBox.Text = "143"
-IDBox.Font = Enum.Font.GothamBold
-IDBox.TextSize = 14
-IDBox.Parent = MainFrame
-Instance.new("UICorner", IDBox).CornerRadius = UDim.new(0, 6)
-
--- [INPUT] TOP SPEED BOX
-local SpeedLabel = Instance.new("TextLabel")
-SpeedLabel.Text = "Max Speed:"
-SpeedLabel.Size = UDim2.new(0.4, 0, 0, 20)
-SpeedLabel.Position = UDim2.new(0.55, 0, 0.28, 0)
-SpeedLabel.BackgroundTransparency = 1
-SpeedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-SpeedLabel.Font = Enum.Font.GothamBold
-SpeedLabel.TextSize = 12
-SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
-SpeedLabel.Parent = MainFrame
-
-local SpeedBox = Instance.new("TextBox")
-SpeedBox.Size = UDim2.new(0.4, 0, 0, 30)
-SpeedBox.Position = UDim2.new(0.55, 0, 0.35, 0)
-SpeedBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-SpeedBox.TextColor3 = Color3.fromRGB(0, 255, 255)
-SpeedBox.Text = "600"
-SpeedBox.Font = Enum.Font.GothamBold
-SpeedBox.TextSize = 14
-SpeedBox.Parent = MainFrame
-Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0, 6)
-
--- [BUTTON] 2. INJECT EVERYTHING (Hybrid)
+-- [BUTTON] 2. OVERRIDE ENGINE (Local)
 local InjectBtn = Instance.new("TextButton")
 InjectBtn.Size = UDim2.new(0.9, 0, 0, 50)
-InjectBtn.Position = UDim2.new(0.05, 0, 0.52, 0)
-InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-InjectBtn.Text = "💉 INJECT GOD MODE\n(Server Boost + Client Speed)"
+InjectBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
+InjectBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+InjectBtn.Text = "⚡ OVERRIDE ENGINE\n(Local Event Inject)"
 InjectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 InjectBtn.Font = Enum.Font.GothamBold
 InjectBtn.TextSize = 14
@@ -168,56 +115,59 @@ InjectBtn.MouseButton1Click:Connect(function()
         local car = char.Humanoid.SeatPart.Parent
         local carVal = car:FindFirstChild("Car") and car.Car.Value or car
         
-        -- === STEP 1: SERVER INJECTION (ACCELERATION) ===
-        -- Use recursive search to fix "Remote Missing"
-        local remote = FindRemote("RemoteEvent", ReplicatedStorage)
-        local carID = tonumber(IDBox.Text)
+        -- SEARCH FOR THE LOCAL EVENT
+        -- It's inside the Car Model (usually named "TuneUpdatedEvent" or similar)
+        local tuneEvent = carVal:FindFirstChild("TuneUpdatedEvent") or car:FindFirstChild("TuneUpdatedEvent")
         
-        if remote and carID then
-            local hackedStats = {
-                ["Turbochargers"] = Config.HackedCount,
-                ["T_Boost"] = Config.HackedBoost, -- 10,000 PSI
-                ["Superchargers"] = 0,
-                ["S_Boost"] = 0
+        -- Debug Print
+        print("Searching for Event in:", car.Name)
+        if tuneEvent then
+            print("FOUND EVENT:", tuneEvent:GetFullName())
+            
+            -- CONSTRUCT THE GOD TABLE
+            -- We send ONLY what we want to change. A-Chassis merges it.
+            local godStats = {
+                ["Horsepower"] = Config.GodHP,
+                ["Torque"] = Config.GodTorque,
+                ["MaxTorque"] = Config.GodTorque, -- Sometimes named this
+                ["PeakRPM"] = 12000,
+                ["Redline"] = Config.GodRedline,
+                ["E_Redline"] = Config.GodRedline, -- Seen in your log
+                ["Turbochargers"] = 4,
+                ["T_Boost"] = Config.GodBoost,
+                ["FinalDrive"] = Config.GodRatio, -- Speed Hack
+                ["SteerMaxTorque"] = 100000,      -- Grip
+                ["RSteerMaxTorque"] = 100000
             }
-            remote:FireServer("SetAspiration", carID, "Turbo", hackedStats)
-            print("Server Injection Sent to ID:", carID)
-        else
-            if not remote then warn("Still couldn't find RemoteEvent!") end
-        end
-        
-        -- === STEP 2: CLIENT INJECTION (TOP SPEED) ===
-        -- This unlocks the Gears/Redline so you can actually USE the speed
-        local tuneModule = carVal:FindFirstChild("A-Chassis Tune")
-        local tuneEvent = carVal:FindFirstChild("TuneUpdatedEvent")
-        local targetSpeed = tonumber(SpeedBox.Text) or 600
-        
-        if tuneModule and tuneEvent then
-            local success, tune = pcall(require, tuneModule)
-            if success and tune then
-                -- Modify local logic to accept high speed
-                tune.Horsepower = tune.Horsepower + 5000 -- Add local power too
-                tune.MaxSpeed = targetSpeed
-                tune.PeakRPM = 12000
-                tune.Redline = 13000
-                tune.FinalDrive = 0.5 -- Lower Ratio = Higher Top Speed
-                
-                -- Force the car to update
-                tuneEvent:Fire(tune)
-                print("Client Tune Updated! Target Speed:", targetSpeed)
+            
+            -- FIRE LOCAL
+            tuneEvent:Fire(godStats)
+            
+            InjectBtn.Text = "✅ ENGINE OVERRIDDEN"
+            InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+            
+            -- VISUAL UPDATE (Optional)
+            -- If the car has a "Values" folder, we update that too for the GUI
+            local values = carVal:FindFirstChild("Values") or car:FindFirstChild("Values")
+            if values then
+                if values:FindFirstChild("Horsepower") then values.Horsepower.Value = Config.GodHP end
+                if values:FindFirstChild("Torque") then values.Torque.Value = Config.GodTorque end
+                if values:FindFirstChild("BoostTurbo") then values.BoostTurbo.Value = Config.GodBoost end
             end
+            
+        else
+            InjectBtn.Text = "❌ Event Not Found"
+            warn("Could not find 'TuneUpdatedEvent' in car!")
+            -- Print children to console to help debug
+            for _, v in pairs(car:GetChildren()) do print("Car Child:", v.Name, v.ClassName) end
         end
-        
-        InjectBtn.Text = "✅ GOD MODE ACTIVE!"
-        InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        
     else
         InjectBtn.Text = "⚠️ Sit in Driver Seat"
     end
     
     task.wait(2)
-    InjectBtn.Text = "💉 INJECT GOD MODE\n(Server Boost + Client Speed)"
-    InjectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+    InjectBtn.Text = "⚡ OVERRIDE ENGINE\n(Local Event Inject)"
+    InjectBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 end)
 
 -- Minimize Logic
