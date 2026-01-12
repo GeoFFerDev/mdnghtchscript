@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV41: PHYSICS STANDARD ]] --
--- Features: VectorForce (7000), Draggable Icon, Minimize, Traffic Jammer
--- Optimized for Delta | The Reliable "Sweet Spot" Version
+-- [[ JOSEPEDOV42: DEADZONE FIX ]] --
+-- Features: Idle Throttle Filter (Fixes continuous run), 7000 Power, Traffic Jammer
+-- Optimized for Delta | Solves the "3% Idle" bug found in your logs
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,7 +13,8 @@ local player = Players.LocalPlayer
 local Config = {
     TrafficBlocked = false,
     BoostPower = 7000, -- The Sweet Spot
-    Enabled = false    -- Master Toggle
+    Enabled = false,   -- Master Toggle
+    Deadzone = 0.2     -- IGNORE inputs below 20% (Fixes Idle Run)
 }
 
 -- === DRAG FUNCTION ===
@@ -66,7 +67,7 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV41_UI"
+ScreenGui.Name = "JOSEPEDOV42_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- [1] THE ICON (Visible when minimized)
@@ -74,9 +75,9 @@ local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 255, 255) -- Cyan
-OpenIcon.Text = "J41"
-OpenIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
+OpenIcon.BackgroundColor3 = Color3.fromRGB(255, 0, 255) -- Magenta
+OpenIcon.Text = "J42"
+OpenIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
 OpenIcon.Visible = false 
@@ -91,16 +92,16 @@ ControlFrame.Size = UDim2.new(0, 200, 0, 160)
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
 ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(0, 255, 255)
+ControlFrame.BorderColor3 = Color3.fromRGB(255, 0, 255)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
 MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J41: PHYSICS"
+Title.Text = "J42: DEADZONE"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 255, 255)
+Title.TextColor3 = Color3.fromRGB(255, 0, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
@@ -139,7 +140,7 @@ local SpeedBtn = Instance.new("TextButton")
 SpeedBtn.Size = UDim2.new(0.9, 0, 0, 50)
 SpeedBtn.Position = UDim2.new(0.05, 0, 0.50, 0)
 SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-SpeedBtn.Text = "⚡ PHYSICS BOOST: OFF"
+SpeedBtn.Text = "⚡ SPEED ASSIST: OFF"
 SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SpeedBtn.Font = Enum.Font.GothamBold
 SpeedBtn.TextSize = 14
@@ -149,11 +150,11 @@ Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
 SpeedBtn.MouseButton1Click:Connect(function()
     Config.Enabled = not Config.Enabled
     if Config.Enabled then
-        SpeedBtn.Text = "⚡ PHYSICS BOOST: ON\n(Hold Gas to Active)"
+        SpeedBtn.Text = "⚡ SPEED ASSIST: ON\n(Press Gas to Engage)"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
         SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
-        SpeedBtn.Text = "⚡ PHYSICS BOOST: OFF"
+        SpeedBtn.Text = "⚡ SPEED ASSIST: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     end
@@ -194,12 +195,12 @@ end)
 -- === PHYSICS LOOP ===
 RunService.Heartbeat:Connect(function()
     if not Config.Enabled then 
-        -- Cleanup if disabled
+        -- Safety Cleanup
         local char = player.Character
         if char then
             local humanoid = char:FindFirstChild("Humanoid")
             if humanoid and humanoid.SeatPart then
-                local thrust = humanoid.SeatPart:FindFirstChild("J41_Thrust")
+                local thrust = humanoid.SeatPart:FindFirstChild("J42_Thrust")
                 if thrust then thrust:Destroy() end
             end
         end
@@ -221,40 +222,44 @@ RunService.Heartbeat:Connect(function()
     
     if not driveSeat then return end
     
-    -- === INPUT DETECTION ===
+    -- === INPUT FILTER (The Fix) ===
     local isGasPressed = false
     
-    -- 1. Check Seat Property (Standard)
-    if driveSeat.Throttle > 0 then isGasPressed = true end
+    -- We check if Throttle is greater than the Deadzone (0.2)
+    -- This ignores the 0.03 "Idle Throttle" that caused the bug.
+    if driveSeat.Throttle > Config.Deadzone then 
+        isGasPressed = true 
+    end
     
-    -- 2. Check Keys (Backup for Mobile/PC)
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) or UserInputService:IsKeyDown(Enum.KeyCode.ButtonR2) then
+    -- Backup Keys (PC/Gamepad)
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then
         isGasPressed = true
     end
 
     -- === PHYSICS APPLICATION ===
-    local att = driveSeat:FindFirstChild("J41_Att")
-    local thrust = driveSeat:FindFirstChild("J41_Thrust")
+    local att = driveSeat:FindFirstChild("J42_Att")
+    local thrust = driveSeat:FindFirstChild("J42_Thrust")
     
     if not att then
         att = Instance.new("Attachment", driveSeat)
-        att.Name = "J41_Att"
+        att.Name = "J42_Att"
     end
     
     if isGasPressed then
         -- APPLY FORCE (7000)
         if not thrust then
             thrust = Instance.new("VectorForce", driveSeat)
-            thrust.Name = "J41_Thrust"
+            thrust.Name = "J42_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
         
-        -- Negative Z is Forward for vehicles
+        -- Negative Z is Forward
         thrust.Force = Vector3.new(0, 0, -Config.BoostPower)
         
     else
-        -- KILL FORCE (Stops continuous running)
+        -- KILL FORCE INSTANTLY
+        -- If you let go (or throttle drops to 0.03), this runs.
         if thrust then 
             thrust:Destroy() 
         end
