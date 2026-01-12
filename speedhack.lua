@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV45: DUAL-DIRECTION ]] --
--- Features: Brake/Reverse Detection, Reverse Boost, Traffic Jammer
--- Optimized for Delta | Fixes "Fighting" by detecting Brake Input
+-- [[ JOSEPEDOV46: HARDWARE LOGIC ]] --
+-- Features: Input-Based Physics, Deadzone Filter, Invert Toggle, Traffic Jammer
+-- Optimized for Delta | Fixes "Brake Accelerates" bug completely
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,12 +13,13 @@ local player = Players.LocalPlayer
 local Config = {
     TrafficBlocked = false,
     BoostPower = 7000,   -- Forward Power
-    ReversePower = 4000, -- Reverse Power (Slightly lower for control)
+    ReversePower = 4000, -- Reverse Power
     Enabled = false,     -- Master Toggle
-    Deadzone = 0.1       -- 10% Deadzone
+    Deadzone = 0.1,      -- Filters out the 0.03 idle ghost
+    Inverted = false     -- Toggle if car goes wrong way
 }
 
--- === STATE VARIABLES ===
+-- === STATE ===
 local currentSeat = nil
 
 -- === DRAG FUNCTION ===
@@ -71,7 +72,7 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV45_UI"
+ScreenGui.Name = "JOSEPEDOV46_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- [1] THE ICON
@@ -79,9 +80,9 @@ local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Yellow
-OpenIcon.Text = "J45"
-OpenIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
+OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 100, 255) -- Blue
+OpenIcon.Text = "J46"
+OpenIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
 OpenIcon.Visible = false 
@@ -92,28 +93,28 @@ MakeDraggable(OpenIcon)
 -- [2] MAIN PANEL
 local ControlFrame = Instance.new("Frame")
 ControlFrame.Name = "ControlFrame"
-ControlFrame.Size = UDim2.new(0, 200, 0, 160)
+ControlFrame.Size = UDim2.new(0, 200, 0, 200)
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 10)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(10, 15, 25)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(255, 255, 0)
+ControlFrame.BorderColor3 = Color3.fromRGB(0, 100, 255)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
 MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J45: REVERSE FIX"
+Title.Text = "J46: LOGIC FIX"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 255, 0)
+Title.TextColor3 = Color3.fromRGB(0, 100, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
 
 -- Traffic Button
 local TrafficBtn = Instance.new("TextButton")
-TrafficBtn.Size = UDim2.new(0.9, 0, 0, 35)
-TrafficBtn.Position = UDim2.new(0.05, 0, 0.20, 0)
+TrafficBtn.Size = UDim2.new(0.9, 0, 0, 30)
+TrafficBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
 TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 TrafficBtn.Text = "🚫 Kill Traffic"
 TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -139,6 +140,29 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Invert Button
+local InvertBtn = Instance.new("TextButton")
+InvertBtn.Size = UDim2.new(0.9, 0, 0, 30)
+InvertBtn.Position = UDim2.new(0.05, 0, 0.32, 0)
+InvertBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+InvertBtn.Text = "🔄 Direction: Normal"
+InvertBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+InvertBtn.Font = Enum.Font.GothamBold
+InvertBtn.TextSize = 14
+InvertBtn.Parent = ControlFrame
+Instance.new("UICorner", InvertBtn).CornerRadius = UDim.new(0, 6)
+
+InvertBtn.MouseButton1Click:Connect(function()
+    Config.Inverted = not Config.Inverted
+    if Config.Inverted then
+        InvertBtn.Text = "🔄 Direction: INVERTED"
+        InvertBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+    else
+        InvertBtn.Text = "🔄 Direction: Normal"
+        InvertBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    end
+end)
+
 -- Speed Toggle
 local SpeedBtn = Instance.new("TextButton")
 SpeedBtn.Size = UDim2.new(0.9, 0, 0, 50)
@@ -154,16 +178,25 @@ Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
 SpeedBtn.MouseButton1Click:Connect(function()
     Config.Enabled = not Config.Enabled
     if Config.Enabled then
-        SpeedBtn.Text = "⚡ SPEED HACK: ON\n(Supports Reverse)"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
-        SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+        SpeedBtn.Text = "⚡ SPEED HACK: ON"
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
     else
         SpeedBtn.Text = "⚡ SPEED HACK: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         currentSeat = nil
     end
 end)
+
+-- DEBUG LABEL (Shows what the script thinks you are doing)
+local DebugLabel = Instance.new("TextLabel")
+DebugLabel.Text = "Action: IDLE"
+DebugLabel.Size = UDim2.new(1, 0, 0, 20)
+DebugLabel.Position = UDim2.new(0, 0, 0.80, 0)
+DebugLabel.BackgroundTransparency = 1
+DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+DebugLabel.Font = Enum.Font.Code
+DebugLabel.TextSize = 14
+DebugLabel.Parent = ControlFrame
 
 -- Minimize Logic
 local MinBtn = Instance.new("TextButton")
@@ -196,11 +229,11 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.Parent = ControlFrame
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === PHYSICS LOOP (DUAL DIRECTION) ===
+-- === PHYSICS LOOP (PURE HARDWARE LOGIC) ===
 RunService.Heartbeat:Connect(function()
     if not Config.Enabled then 
         if currentSeat then
-            local thrust = currentSeat:FindFirstChild("J45_Thrust")
+            local thrust = currentSeat:FindFirstChild("J46_Thrust")
             if thrust then thrust:Destroy() end
             currentSeat = nil
         end
@@ -210,7 +243,7 @@ RunService.Heartbeat:Connect(function()
     local char = player.Character
     if not char then return end
     
-    -- 1. Refresh Car
+    -- 1. Refresh Car (Auto-Detect)
     if currentSeat and (not currentSeat.Parent or not currentSeat:IsDescendantOf(Workspace)) then
         currentSeat = nil
     end
@@ -225,63 +258,68 @@ RunService.Heartbeat:Connect(function()
         end
     end
     
-    if not currentSeat then return end
-    
-    -- 2. READ INPUTS (Gas AND Brake)
-    local gasVal = 0
-    local brakeVal = 0
-    
-    -- Try reading A-Chassis Interface
-    local interface = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("A-Chassis Interface")
-    if interface then
-        local valFolder = interface:FindFirstChild("Values")
-        if valFolder then
-            local gObj = valFolder:FindFirstChild("Throttle")
-            local bObj = valFolder:FindFirstChild("Brake")
-            if gObj then gasVal = gObj.Value end
-            if bObj then brakeVal = bObj.Value end
-        end
+    if not currentSeat then 
+        DebugLabel.Text = "Action: NO CAR"
+        return 
     end
     
-    -- Fallback: Seat Property (Handling W/S)
-    if gasVal == 0 and brakeVal == 0 then
-        if currentSeat.Throttle > 0 then gasVal = 1 end
-        if currentSeat.Throttle < 0 then brakeVal = 1 end
-    end
+    -- 2. DETERMINE ACTION (Deadzone + Direction)
+    -- We ONLY look at the Seat.Throttle. 
+    -- 1.0 = W (Gas), -1.0 = S (Reverse), 0.03 = Idle (Ignore)
     
-    -- 3. DETERMINE DIRECTION (Brake Wins)
-    local targetForce = 0
+    local action = "IDLE"
+    local rawThrottle = currentSeat.Throttle
     
-    if brakeVal > Config.Deadzone then
-        -- REVERSE: Apply Positive Z (Backward)
-        targetForce = Config.ReversePower 
-    elseif gasVal > Config.Deadzone then
-        -- FORWARD: Apply Negative Z (Forward)
-        targetForce = -Config.BoostPower 
+    if rawThrottle > Config.Deadzone then
+        action = "GAS"
+    elseif rawThrottle < -Config.Deadzone then
+        action = "REVERSE"
     else
-        -- IDLE: No Force
-        targetForce = 0
+        action = "IDLE"
     end
     
-    -- 4. APPLY PHYSICS
-    local att = currentSeat:FindFirstChild("J45_Att")
-    local thrust = currentSeat:FindFirstChild("J45_Thrust")
+    DebugLabel.Text = "Action: " .. action
+    
+    -- 3. APPLY PHYSICS
+    local att = currentSeat:FindFirstChild("J46_Att")
+    local thrust = currentSeat:FindFirstChild("J46_Thrust")
     
     if not att then
         att = Instance.new("Attachment", currentSeat)
-        att.Name = "J45_Att"
+        att.Name = "J46_Att"
     end
     
-    if targetForce ~= 0 then
+    if action == "IDLE" then
+        -- Stop Pushing
+        if thrust then thrust:Destroy() end
+        DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        
+    elseif action == "GAS" then
+        -- Apply Forward Force
         if not thrust then
             thrust = Instance.new("VectorForce", currentSeat)
-            thrust.Name = "J45_Thrust"
+            thrust.Name = "J46_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
-        thrust.Force = Vector3.new(0, 0, targetForce)
-    else
-        -- Kill power instantly on release
-        if thrust then thrust:Destroy() end
+        
+        -- NORMAL: Negative Z is Forward. INVERTED: Positive Z is Forward.
+        local forceZ = Config.Inverted and Config.BoostPower or -Config.BoostPower
+        thrust.Force = Vector3.new(0, 0, forceZ)
+        DebugLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+        
+    elseif action == "REVERSE" then
+        -- Apply Reverse Force
+        if not thrust then
+            thrust = Instance.new("VectorForce", currentSeat)
+            thrust.Name = "J46_Thrust"
+            thrust.Attachment0 = att
+            thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+        end
+        
+        -- NORMAL: Positive Z is Backward. INVERTED: Negative Z is Backward.
+        local forceZ = Config.Inverted and -Config.ReversePower or Config.ReversePower
+        thrust.Force = Vector3.new(0, 0, forceZ)
+        DebugLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
     end
 end)
