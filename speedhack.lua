@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV51: REVERSE LOCKOUT ]] --
--- Features: Hard Gear Lockout, Traffic Jammer, Draggable UI
--- Optimized for Delta | Prevents Forward Boost while in Reverse Gear
+-- [[ JOSEPEDOV52: ADAPTIVE POWER ]] --
+-- Features: Mass-Based Force, Reverse Lockout, Traffic Jammer
+-- Optimized for Delta | Fixes "Expensive Car Too Slow" issue
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +12,7 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000,   -- Forward Power
+    PowerMultiplier = 3, -- Force = Mass * This (Default 3G acceleration)
     Enabled = false,     -- Master Toggle
     Deadzone = 0.1       -- Gas Threshold
 }
@@ -70,7 +70,7 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV51_UI"
+ScreenGui.Name = "JOSEPEDOV52_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- [1] THE ICON
@@ -78,8 +78,8 @@ local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(255, 0, 255) -- Purple
-OpenIcon.Text = "J51"
+OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 100, 255) -- Electric Blue
+OpenIcon.Text = "J52"
 OpenIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
@@ -91,28 +91,28 @@ MakeDraggable(OpenIcon)
 -- [2] MAIN PANEL
 local ControlFrame = Instance.new("Frame")
 ControlFrame.Name = "ControlFrame"
-ControlFrame.Size = UDim2.new(0, 200, 0, 160)
+ControlFrame.Size = UDim2.new(0, 200, 0, 180)
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 10, 20)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(10, 15, 25)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(255, 0, 255)
+ControlFrame.BorderColor3 = Color3.fromRGB(0, 100, 255)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
 MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J51: REV LOCKOUT"
+Title.Text = "J52: ADAPTIVE"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 0, 255)
+Title.TextColor3 = Color3.fromRGB(0, 100, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
 
 -- Traffic Button
 local TrafficBtn = Instance.new("TextButton")
-TrafficBtn.Size = UDim2.new(0.9, 0, 0, 35)
-TrafficBtn.Position = UDim2.new(0.05, 0, 0.20, 0)
+TrafficBtn.Size = UDim2.new(0.9, 0, 0, 30)
+TrafficBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
 TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 TrafficBtn.Text = "🚫 Kill Traffic"
 TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -138,10 +138,49 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Power Adjustment (Multiplier)
+local PowerLabel = Instance.new("TextLabel")
+PowerLabel.Text = "Power Ratio: 3x (Mass)"
+PowerLabel.Size = UDim2.new(1, 0, 0, 20)
+PowerLabel.Position = UDim2.new(0, 0, 0.35, 0)
+PowerLabel.BackgroundTransparency = 1
+PowerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+PowerLabel.Font = Enum.Font.GothamBold
+PowerLabel.TextSize = 12
+PowerLabel.Parent = ControlFrame
+
+local MinusBtn = Instance.new("TextButton")
+MinusBtn.Text = "-"
+MinusBtn.Size = UDim2.new(0.4, 0, 0, 30)
+MinusBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
+MinusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinusBtn.Parent = ControlFrame
+Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 6)
+
+local PlusBtn = Instance.new("TextButton")
+PlusBtn.Text = "+"
+PlusBtn.Size = UDim2.new(0.4, 0, 0, 30)
+PlusBtn.Position = UDim2.new(0.55, 0, 0.45, 0)
+PlusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlusBtn.Parent = ControlFrame
+Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 6)
+
+MinusBtn.MouseButton1Click:Connect(function()
+    Config.PowerMultiplier = math.max(0.5, Config.PowerMultiplier - 0.5)
+    PowerLabel.Text = "Power Ratio: " .. Config.PowerMultiplier .. "x (Mass)"
+end)
+
+PlusBtn.MouseButton1Click:Connect(function()
+    Config.PowerMultiplier = Config.PowerMultiplier + 0.5
+    PowerLabel.Text = "Power Ratio: " .. Config.PowerMultiplier .. "x (Mass)"
+end)
+
 -- Speed Toggle
 local SpeedBtn = Instance.new("TextButton")
-SpeedBtn.Size = UDim2.new(0.9, 0, 0, 50)
-SpeedBtn.Position = UDim2.new(0.05, 0, 0.50, 0)
+SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
+SpeedBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
 SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 SpeedBtn.Text = "⚡ SPEED HACK: OFF"
 SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -154,7 +193,7 @@ SpeedBtn.MouseButton1Click:Connect(function()
     Config.Enabled = not Config.Enabled
     if Config.Enabled then
         SpeedBtn.Text = "⚡ SPEED HACK: ON"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 255)
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
         SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
         SpeedBtn.Text = "⚡ SPEED HACK: OFF"
@@ -168,7 +207,7 @@ end)
 local DebugLabel = Instance.new("TextLabel")
 DebugLabel.Text = "Status: IDLE"
 DebugLabel.Size = UDim2.new(1, 0, 0, 20)
-DebugLabel.Position = UDim2.new(0, 0, 0.85, 0)
+DebugLabel.Position = UDim2.new(0, 0, 0.88, 0)
 DebugLabel.BackgroundTransparency = 1
 DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
 DebugLabel.Font = Enum.Font.Code
@@ -206,11 +245,11 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.Parent = ControlFrame
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === PHYSICS LOOP (REVERSE LOCKOUT) ===
+-- === PHYSICS LOOP (ADAPTIVE POWER) ===
 RunService.Heartbeat:Connect(function()
     if not Config.Enabled then 
         if currentSeat then
-            local thrust = currentSeat:FindFirstChild("J51_Thrust")
+            local thrust = currentSeat:FindFirstChild("J52_Thrust")
             if thrust then thrust:Destroy() end
             currentSeat = nil
         end
@@ -243,7 +282,7 @@ RunService.Heartbeat:Connect(function()
     -- 2. READ VALUES
     local gasVal = 0
     local brakeVal = 0
-    local gearVal = 1 -- Default forward
+    local gearVal = 1
     
     local interface = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("A-Chassis Interface")
     if interface then
@@ -259,57 +298,56 @@ RunService.Heartbeat:Connect(function()
         end
     end
     
-    -- 3. THE HARD LOCKOUT
+    -- 3. LOCKOUT LOGIC
     local isReversing = false
-    
-    -- Check Gear (Primary Lock)
     if gearVal == -1 then isReversing = true end
-    
-    -- Check Brake (Secondary Lock)
     if brakeVal > 0.1 then isReversing = true end
     
-    -- Check Motion (Tertiary Lock)
     local velocity = currentSeat.AssemblyLinearVelocity
     local forwardDir = currentSeat.CFrame.LookVector
     if velocity.Magnitude > 5 and velocity:Dot(forwardDir) < -1 then
         isReversing = true
     end
     
-    -- 4. EXECUTE
-    local thrust = currentSeat:FindFirstChild("J51_Thrust")
-    local att = currentSeat:FindFirstChild("J51_Att")
+    -- 4. APPLY PHYSICS
+    local att = currentSeat:FindFirstChild("J52_Att")
+    local thrust = currentSeat:FindFirstChild("J52_Thrust")
     
     if not att then
         att = Instance.new("Attachment", currentSeat)
-        att.Name = "J51_Att"
+        att.Name = "J52_Att"
     end
     
     if isReversing then
-        -- === LOCKOUT ENGAGED ===
-        -- Destroy force immediately.
-        -- Even if gasVal is 100, we DO NOT BOOST.
+        -- REVERSE: Lockout
         if thrust then thrust:Destroy() end
-        
-        DebugLabel.Text = "Status: REVERSING (Locked)"
-        DebugLabel.TextColor3 = Color3.fromRGB(255, 100, 100) -- Red
+        DebugLabel.Text = "Status: NATURAL REVERSE"
+        DebugLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
         
     elseif gasVal > Config.Deadzone then
-        -- === SAFE TO BOOST ===
+        -- BOOSTING
         if not thrust then
             thrust = Instance.new("VectorForce", currentSeat)
-            thrust.Name = "J51_Thrust"
+            thrust.Name = "J52_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
-        thrust.Force = Vector3.new(0, 0, -Config.BoostPower) -- Forward
         
-        DebugLabel.Text = "Status: BOOSTING"
-        DebugLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+        -- **ADAPTIVE FORCE CALCULATION**
+        -- Force = Mass * Multiplier * Gravity_Compensation
+        local mass = currentSeat.AssemblyMass
+        local targetForce = mass * Config.PowerMultiplier * 50 
+        -- Note: 50 is a base scalar to make "3x" feel fast but controllable
+        
+        thrust.Force = Vector3.new(0, 0, -targetForce)
+        
+        DebugLabel.Text = "Status: BOOST (" .. math.floor(targetForce) .. "N)"
+        DebugLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
         
     else
-        -- === IDLE ===
+        -- IDLE
         if thrust then thrust:Destroy() end
         DebugLabel.Text = "Status: IDLE"
-        DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150) -- Grey
+        DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
     end
 end)
