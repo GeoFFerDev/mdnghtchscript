@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV38: LOCKED & LOADED ]] --
--- Features: Hybrid Input (Virtual + Native), Drag Lock, Power Adjust
--- Optimized for Delta | The Ultimate Driving Script
+-- [[ JOSEPEDOV39: SEAMLESS EDITION ]] --
+-- Features: Smart Anchoring (Fixes "Stuck" Bug), Auto-Assist, Drag Lock
+-- Optimized for Delta | The Speed Hack that adapts to you
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,39 +12,31 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000,   -- Default Sweet Spot
+    BoostPower = 7000,   -- Default Power
     InputState = "IDLE", -- GAS, BRAKE, IDLE
-    StopThreshold = 5,   
+    StopThreshold = 2,   -- Only anchor if slower than this
     PedalsVisible = true,
-    UILocked = false,    -- Lock Dragging
-    NativeGas = false,   -- Detected from Game
-    NativeBrake = false
+    UILocked = false,    -- Drag Lock
 }
 
--- === DRAG FUNCTION (With Lock Check) ===
+-- === DRAG SYSTEM ===
 local function MakeDraggable(gui)
-    local dragging
-    local dragInput
-    local dragStart
-    local startPos
+    local dragging, dragInput, dragStart, startPos
 
     local function update(input)
-        if Config.UILocked then return end -- STOP if locked
+        if Config.UILocked then return end
         local delta = input.Position - dragStart
         gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 
     gui.InputBegan:Connect(function(input)
-        if Config.UILocked then return end -- STOP if locked
+        if Config.UILocked then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = gui.Position
-            
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
             end)
         end
     end)
@@ -56,9 +48,7 @@ local function MakeDraggable(gui)
     end)
 
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
+        if input == dragInput and dragging then update(input) end
     end)
 end
 
@@ -81,7 +71,7 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV38_UI"
+ScreenGui.Name = "JOSEPEDOV39_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- [1] THE ICON (Visible when minimized)
@@ -89,8 +79,8 @@ local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.2, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(255, 165, 0) -- Orange
-OpenIcon.Text = "J38"
+OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+OpenIcon.Text = "J39"
 OpenIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
@@ -102,20 +92,20 @@ MakeDraggable(OpenIcon)
 -- [2] MAIN CONTROL PANEL
 local ControlFrame = Instance.new("Frame")
 ControlFrame.Name = "ControlFrame"
-ControlFrame.Size = UDim2.new(0, 200, 0, 220) -- Taller for extra buttons
+ControlFrame.Size = UDim2.new(0, 200, 0, 220)
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(255, 165, 0)
+ControlFrame.BorderColor3 = Color3.fromRGB(0, 200, 255)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
 MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J38: ULTIMATE"
+Title.Text = "J39: SEAMLESS"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 165, 0)
+Title.TextColor3 = Color3.fromRGB(0, 200, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
@@ -154,7 +144,7 @@ local LockBtn = Instance.new("TextButton")
 LockBtn.Size = UDim2.new(0.9, 0, 0, 30)
 LockBtn.Position = UDim2.new(0.05, 0, 0.32, 0)
 LockBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-LockBtn.Text = "🔓 Position: Unlocked"
+LockBtn.Text = "🔓 Drag: Unlocked"
 LockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 LockBtn.Font = Enum.Font.GothamBold
 LockBtn.TextSize = 14
@@ -164,10 +154,10 @@ Instance.new("UICorner", LockBtn).CornerRadius = UDim.new(0, 6)
 LockBtn.MouseButton1Click:Connect(function()
     Config.UILocked = not Config.UILocked
     if Config.UILocked then
-        LockBtn.Text = "🔒 Position: LOCKED"
-        LockBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 0) -- Orange
+        LockBtn.Text = "🔒 Drag: LOCKED"
+        LockBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
     else
-        LockBtn.Text = "🔓 Position: Unlocked"
+        LockBtn.Text = "🔓 Drag: Unlocked"
         LockBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     end
 end)
@@ -273,7 +263,7 @@ BrakeBtn.Parent = ScreenGui
 Instance.new("UICorner", BrakeBtn).CornerRadius = UDim.new(0, 20)
 MakeDraggable(BrakeBtn)
 
--- === LOGIC ===
+-- === UI LOGIC ===
 MinBtn.MouseButton1Click:Connect(function()
     ControlFrame.Visible = false
     OpenIcon.Visible = true
@@ -298,7 +288,6 @@ TogglePedalsBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- VIRTUAL INPUT
 GasBtn.MouseButton1Down:Connect(function() Config.InputState = "GAS"; GasBtn.BackgroundTransparency = 0.2 end)
 GasBtn.MouseButton1Up:Connect(function() Config.InputState = "IDLE"; GasBtn.BackgroundTransparency = 0.6 end)
 GasBtn.MouseLeave:Connect(function() Config.InputState = "IDLE"; GasBtn.BackgroundTransparency = 0.6 end)
@@ -307,11 +296,12 @@ BrakeBtn.MouseButton1Down:Connect(function() Config.InputState = "BRAKE"; BrakeB
 BrakeBtn.MouseButton1Up:Connect(function() Config.InputState = "IDLE"; BrakeBtn.BackgroundTransparency = 0.6 end)
 BrakeBtn.MouseLeave:Connect(function() Config.InputState = "IDLE"; BrakeBtn.BackgroundTransparency = 0.6 end)
 
--- === PHYSICS LOOP (HYBRID INPUT) ===
+-- === PHYSICS LOGIC (FIXED) ===
 RunService.Heartbeat:Connect(function()
     local char = player.Character
     if not char then return end
     
+    -- Auto-Find Seat
     local driveSeat = nil
     local car = nil
     local humanoid = char:FindFirstChild("Humanoid")
@@ -328,74 +318,84 @@ RunService.Heartbeat:Connect(function()
     
     if not driveSeat then return end
     
-    -- === NATIVE INPUT DETECTION (BACKUP) ===
-    -- This runs if you are using game controls (W/S/Touch) instead of Virtual Pedals
-    Config.NativeGas = false
-    Config.NativeBrake = false
+    -- === DETECT INTENT (HYBRID) ===
+    local intent = "IDLE"
     
-    -- Check 1: Seat Throttle
-    if driveSeat.Throttle > 0 then Config.NativeGas = true end
-    if driveSeat.Throttle < 0 then Config.NativeBrake = true end
+    -- 1. Virtual Pedals (Highest Priority)
+    if Config.InputState == "GAS" then intent = "GAS" 
+    elseif Config.InputState == "BRAKE" then intent = "BRAKE" end
     
-    -- Check 2: Values Folder (Robust Check)
-    if car then
-        -- Search recursively for "Throttle" value
-        for _, v in pairs(car:GetDescendants()) do
-            if v.Name == "Throttle" and v:IsA("NumberValue") or v:IsA("IntValue") then
-                if v.Value > 0 then Config.NativeGas = true end
-                if v.Value < 0 then Config.NativeBrake = true end
-                break -- Found it
-            end
-        end
+    -- 2. Native Throttle (If Pedals not used)
+    if intent == "IDLE" then
+        if driveSeat.Throttle > 0 then intent = "GAS"
+        elseif driveSeat.Throttle < 0 then intent = "BRAKE" end
     end
     
-    -- === FORCE APPLICATION ===
-    local thrust = driveSeat:FindFirstChild("J38_Thrust")
-    local anchor = driveSeat:FindFirstChild("J38_Anchor")
-    local att = driveSeat:FindFirstChild("J38_Att")
+    -- 3. Velocity Assist (If Input Detection fails but car is moving)
+    -- This fixes the "Anchored" feeling when hiding pedals
+    if intent == "IDLE" then
+        local vel = driveSeat.AssemblyLinearVelocity
+        local speed = vel.Magnitude
+        local forwardDir = driveSeat.CFrame.LookVector
+        local isMovingForward = vel:Dot(forwardDir) > 0
+        
+        if speed > 10 and isMovingForward then 
+            -- Assuming stock engine is pushing, so we boost
+            intent = "GAS" 
+        elseif speed > 10 and not isMovingForward then
+            intent = "BRAKE"
+        end
+    end
+
+    -- === APPLY FORCES ===
+    local thrust = driveSeat:FindFirstChild("J39_Thrust")
+    local anchor = driveSeat:FindFirstChild("J39_Anchor")
+    local att = driveSeat:FindFirstChild("J39_Att")
     
     if not att then
         att = Instance.new("Attachment", driveSeat)
-        att.Name = "J38_Att"
+        att.Name = "J39_Att"
     end
     
-    -- GAS: Virtual OR Native
-    if Config.InputState == "GAS" or Config.NativeGas then
+    if intent == "GAS" then
+        -- REMOVE ANCHOR
         if anchor then anchor:Destroy() end
+        -- APPLY BOOST
         if not thrust then
             thrust = Instance.new("VectorForce", driveSeat)
-            thrust.Name = "J38_Thrust"
+            thrust.Name = "J39_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
         thrust.Force = Vector3.new(0, 0, -Config.BoostPower) -- Forward
         
-    -- BRAKE: Virtual OR Native
-    elseif Config.InputState == "BRAKE" or Config.NativeBrake then
+    elseif intent == "BRAKE" then
         if anchor then anchor:Destroy() end
         if not thrust then
             thrust = Instance.new("VectorForce", driveSeat)
-            thrust.Name = "J38_Thrust"
+            thrust.Name = "J39_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
         thrust.Force = Vector3.new(0, 0, Config.BoostPower) -- Reverse
         
-    else -- IDLE
+    else -- TRULY IDLE
+        -- Stop Boosting
         if thrust then thrust:Destroy() end
         
+        -- ONLY ANCHOR IF STOPPED
+        -- This fixes the "stuck" bug. We let it coast if it's moving fast.
         local speed = driveSeat.AssemblyLinearVelocity.Magnitude
-        if speed > Config.StopThreshold then
-            -- Coast
-            if anchor then anchor:Destroy() end
-        else
-            -- Park
+        if speed < Config.StopThreshold then
             if not anchor then
                 anchor = Instance.new("BodyVelocity", driveSeat)
-                anchor.Name = "J38_Anchor"
+                anchor.Name = "J39_Anchor"
                 anchor.MaxForce = Vector3.new(100000, 0, 100000)
                 anchor.Velocity = Vector3.new(0, 0, 0)
             end
+        else
+            -- Let it coast naturally
+            if anchor then anchor:Destroy() end
         end
     end
 end)
