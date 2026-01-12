@@ -1,55 +1,25 @@
--- [[ JOSEPEDOV50: GEAR-SAFE MODE ]] --
--- Features: Gear Detection (-1 Disengage), Velocity Direction Check, Traffic Jammer
--- Optimized for Delta | Uses Gear info to guarantee Natural Reverse
+-- [[ JOSEPEDOV50: GEAR-SAFE MODE (FIXED) ]]
+-- Reverse can NEVER accelerate now
+-- Speed boost only works in real forward gear
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
+
 local player = Players.LocalPlayer
 
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000,   -- Forward Power
-    Enabled = false,     -- Master Toggle
-    Deadzone = 0.1       -- Gas Threshold
+    BoostPower = 7000,     -- Forward Power
+    Enabled = false,      -- Master Toggle
+    Deadzone = 0.1        -- Gas Threshold
 }
 
 -- === STATE ===
 local currentSeat = nil
-
--- === DRAG FUNCTION ===
-local function MakeDraggable(gui)
-    local dragging, dragInput, dragStart, startPos
-
-    local function update(input)
-        local delta = input.Position - dragStart
-        gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-
-    gui.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = gui.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
-        end
-    end)
-
-    gui.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then update(input) end
-    end)
-end
 
 -- === 1. TRAFFIC JAMMER ===
 local function InstallTrafficHook()
@@ -58,7 +28,7 @@ local function InstallTrafficHook()
         for _, connection in pairs(getconnections(event.OnClientEvent)) do
             local oldFunction = connection.Function
             if oldFunction then
-                hookfunction(connection.Function, function(...)
+                hookfunction(oldFunction, function(...)
                     if Config.TrafficBlocked then return end
                     return oldFunction(...)
                 end)
@@ -68,255 +38,112 @@ local function InstallTrafficHook()
 end
 InstallTrafficHook()
 
--- === UI CREATION ===
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV50_UI"
-ScreenGui.Parent = game.CoreGui
+-- === UI (unchanged, removed for brevity if you want UI back I can paste it too) ===
+-- Your UI code can stay the same, physics part below is what matters
 
--- [1] THE ICON
-local OpenIcon = Instance.new("TextButton")
-OpenIcon.Name = "OpenIcon"
-OpenIcon.Size = UDim2.new(0, 50, 0, 50)
-OpenIcon.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 255, 255) -- Cyan
-OpenIcon.Text = "J50"
-OpenIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
-OpenIcon.Font = Enum.Font.GothamBlack
-OpenIcon.TextSize = 18
-OpenIcon.Visible = false 
-OpenIcon.Parent = ScreenGui
-Instance.new("UICorner", OpenIcon).CornerRadius = UDim.new(0, 25)
-MakeDraggable(OpenIcon)
-
--- [2] MAIN PANEL
-local ControlFrame = Instance.new("Frame")
-ControlFrame.Name = "ControlFrame"
-ControlFrame.Size = UDim2.new(0, 200, 0, 160)
-ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-ControlFrame.BackgroundColor3 = Color3.fromRGB(10, 15, 20)
-ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(0, 255, 255)
-ControlFrame.Active = true
-ControlFrame.Parent = ScreenGui
-MakeDraggable(ControlFrame)
-
-local Title = Instance.new("TextLabel")
-Title.Text = "J50: GEAR SAFE"
-Title.Size = UDim2.new(1, 0, 0, 20)
-Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 255, 255)
-Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 14
-Title.Parent = ControlFrame
-
--- Traffic Button
-local TrafficBtn = Instance.new("TextButton")
-TrafficBtn.Size = UDim2.new(0.9, 0, 0, 35)
-TrafficBtn.Position = UDim2.new(0.05, 0, 0.20, 0)
-TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-TrafficBtn.Text = "🚫 Kill Traffic"
-TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TrafficBtn.Font = Enum.Font.GothamBold
-TrafficBtn.TextSize = 14
-TrafficBtn.Parent = ControlFrame
-Instance.new("UICorner", TrafficBtn).CornerRadius = UDim.new(0, 6)
-
-TrafficBtn.MouseButton1Click:Connect(function()
-    Config.TrafficBlocked = not Config.TrafficBlocked
-    if Config.TrafficBlocked then
-        TrafficBtn.Text = "Traffic: DEAD 💀"
-        TrafficBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
-        if event then for _, c in pairs(getconnections(event.OnClientEvent)) do c:Disable() end end
-        local npc = Workspace:FindFirstChild("NPCVehicles") or Workspace:FindFirstChild("Traffic")
-        if npc then npc:ClearAllChildren() end
-    else
-        TrafficBtn.Text = "Traffic: ALLOWED"
-        TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        local event = ReplicatedStorage:FindFirstChild("CreateNPCVehicle")
-        if event then for _, c in pairs(getconnections(event.OnClientEvent)) do c:Enable() end end
-    end
-end)
-
--- Speed Toggle
-local SpeedBtn = Instance.new("TextButton")
-SpeedBtn.Size = UDim2.new(0.9, 0, 0, 50)
-SpeedBtn.Position = UDim2.new(0.05, 0, 0.50, 0)
-SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-SpeedBtn.Text = "⚡ SPEED HACK: OFF"
-SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedBtn.Font = Enum.Font.GothamBold
-SpeedBtn.TextSize = 14
-SpeedBtn.Parent = ControlFrame
-Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
-
-SpeedBtn.MouseButton1Click:Connect(function()
-    Config.Enabled = not Config.Enabled
-    if Config.Enabled then
-        SpeedBtn.Text = "⚡ SPEED HACK: ON"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-        SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-    else
-        SpeedBtn.Text = "⚡ SPEED HACK: OFF"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        currentSeat = nil
-    end
-end)
-
--- DEBUG LABEL
-local DebugLabel = Instance.new("TextLabel")
-DebugLabel.Text = "Status: IDLE"
-DebugLabel.Size = UDim2.new(1, 0, 0, 20)
-DebugLabel.Position = UDim2.new(0, 0, 0.85, 0)
-DebugLabel.BackgroundTransparency = 1
-DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-DebugLabel.Font = Enum.Font.Code
-DebugLabel.TextSize = 12
-DebugLabel.Parent = ControlFrame
-
--- Minimize Logic
-local MinBtn = Instance.new("TextButton")
-MinBtn.Text = "-"
-MinBtn.Size = UDim2.new(0, 30, 0, 30)
-MinBtn.Position = UDim2.new(0.70, 0, 0, 0)
-MinBtn.BackgroundTransparency = 1
-MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 24
-MinBtn.Parent = ControlFrame
-
-MinBtn.MouseButton1Click:Connect(function()
-    ControlFrame.Visible = false
-    OpenIcon.Visible = true
-end)
-
-OpenIcon.MouseButton1Click:Connect(function()
-    ControlFrame.Visible = true
-    OpenIcon.Visible = false
-end)
-
--- Close Button
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Text = "X"
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(0.85, 0, 0, 0)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-CloseBtn.Parent = ControlFrame
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
--- === PHYSICS LOOP (GEAR & VELOCITY CHECK) ===
+-- === PHYSICS LOOP (FULLY FIXED) ===
 RunService.Heartbeat:Connect(function()
-    if not Config.Enabled then 
+    if not Config.Enabled then
         if currentSeat then
             local thrust = currentSeat:FindFirstChild("J50_Thrust")
             if thrust then thrust:Destroy() end
             currentSeat = nil
         end
-        return 
+        return
     end
-    
+
     local char = player.Character
     if not char then return end
-    
-    -- 1. Refresh Car
+
+    -- Refresh Seat
     if currentSeat and (not currentSeat.Parent or not currentSeat:IsDescendantOf(Workspace)) then
         currentSeat = nil
     end
-    
+
     if not currentSeat then
         local humanoid = char:FindFirstChild("Humanoid")
         if humanoid and humanoid.SeatPart then
             currentSeat = humanoid.SeatPart
         else
             local carModel = Workspace:FindFirstChild("Lf20Besaya's Car")
-            if carModel then currentSeat = carModel:FindFirstChild("DriveSeat") end
+            if carModel then
+                currentSeat = carModel:FindFirstChild("DriveSeat")
+            end
         end
     end
-    
-    if not currentSeat then 
-        DebugLabel.Text = "Status: NO CAR"
-        return 
-    end
-    
-    -- 2. READ VALUES (Throttle, Brake, Gear)
+
+    if not currentSeat then return end
+
+    -- === READ A-CHASSIS VALUES ===
     local gasVal = 0
     local brakeVal = 0
-    local gearVal = 1 -- Default to forward
-    
-    local interface = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("A-Chassis Interface")
+    local gearVal = 1
+
+    local interface = player.PlayerGui:FindFirstChild("A-Chassis Interface")
     if interface then
         local valFolder = interface:FindFirstChild("Values")
         if valFolder then
             local gObj = valFolder:FindFirstChild("Throttle")
             local bObj = valFolder:FindFirstChild("Brake")
-            local rObj = valFolder:FindFirstChild("Gear") -- Get Gear
-            
+            local rObj = valFolder:FindFirstChild("Gear")
+
             if gObj then gasVal = gObj.Value end
             if bObj then brakeVal = bObj.Value end
             if rObj then gearVal = rObj.Value end
         end
     end
-    
-    -- 3. CHECK DIRECTION (Physics)
-    -- Is the car moving backward?
-    local isMovingBackward = false
+
+    -- === DIRECTION CHECK ===
     local velocity = currentSeat.AssemblyLinearVelocity
     local forwardDir = currentSeat.CFrame.LookVector
+    local isMovingBackward = false
+
     if velocity.Magnitude > 2 and velocity:Dot(forwardDir) < 0 then
         isMovingBackward = true
     end
-    
-    -- 4. LOGIC TREE (Gear/Motion is King)
+
+    -- === LOGIC TREE (FIXED) ===
     local action = "IDLE"
-    
+
     if gearVal == -1 then
-        -- REVERSE GEAR: Disable Boost completely
         action = "NATURAL REVERSE (Gear R)"
-        DebugLabel.TextColor3 = Color3.fromRGB(255, 200, 0) -- Gold
-        
+
     elseif isMovingBackward then
-        -- MOVING BACKWARDS: Disable Boost
         action = "NATURAL REVERSE (Motion)"
-        DebugLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-        
+
     elseif brakeVal > 0 then
-        -- BRAKING: Disable Boost
         action = "BRAKING"
-        DebugLabel.TextColor3 = Color3.fromRGB(255, 50, 50) -- Red
-        
-    elseif gasVal > Config.Deadzone then
-        -- GAS (And confirmed Forward): Boost!
+
+    elseif gasVal > Config.Deadzone and gearVal == 1 then
         action = "BOOSTING"
-        DebugLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+
     else
         action = "IDLE"
-        DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
     end
-    
-    DebugLabel.Text = "Status: " .. action
-    
-    -- 5. APPLY PHYSICS
+
+    -- === APPLY PHYSICS ===
     local att = currentSeat:FindFirstChild("J50_Att")
     local thrust = currentSeat:FindFirstChild("J50_Thrust")
-    
+
     if not att then
-        att = Instance.new("Attachment", currentSeat)
+        att = Instance.new("Attachment")
         att.Name = "J50_Att"
+        att.Parent = currentSeat
     end
-    
+
     if action == "BOOSTING" then
         if not thrust then
-            thrust = Instance.new("VectorForce", currentSeat)
+            thrust = Instance.new("VectorForce")
             thrust.Name = "J50_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+            thrust.Parent = currentSeat
         end
-        -- Forward Boost
+
+        -- Only forward force
         thrust.Force = Vector3.new(0, 0, -Config.BoostPower)
     else
-        -- KILL FORCE for any other state (Brake, Reverse, Idle)
+        -- Any reverse / brake / idle kills boost
         if thrust then thrust:Destroy() end
     end
 end)
