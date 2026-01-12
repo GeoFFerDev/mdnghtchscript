@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV49: SMART DISENGAGE ]] --
--- Features: Auto-Disable on Reverse, Natural Reversing, Forward Boost
--- Optimized for Delta | Fixes "Fighting" by letting the game handle Reverse
+-- [[ JOSEPEDOV50: GEAR-SAFE MODE ]] --
+-- Features: Gear Detection (-1 Disengage), Velocity Direction Check, Traffic Jammer
+-- Optimized for Delta | Uses Gear info to guarantee Natural Reverse
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,9 +12,9 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000,   -- Forward Power Only
+    BoostPower = 7000,   -- Forward Power
     Enabled = false,     -- Master Toggle
-    Deadzone = 0.1       -- Input Threshold
+    Deadzone = 0.1       -- Gas Threshold
 }
 
 -- === STATE ===
@@ -70,7 +70,7 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV49_UI"
+ScreenGui.Name = "JOSEPEDOV50_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- [1] THE ICON
@@ -78,9 +78,9 @@ local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(255, 100, 0) -- Orange
-OpenIcon.Text = "J49"
-OpenIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 255, 255) -- Cyan
+OpenIcon.Text = "J50"
+OpenIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
 OpenIcon.Visible = false 
@@ -93,18 +93,18 @@ local ControlFrame = Instance.new("Frame")
 ControlFrame.Name = "ControlFrame"
 ControlFrame.Size = UDim2.new(0, 200, 0, 160)
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-ControlFrame.BackgroundColor3 = Color3.fromRGB(20, 15, 10)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(10, 15, 20)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(255, 100, 0)
+ControlFrame.BorderColor3 = Color3.fromRGB(0, 255, 255)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
 MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J49: SMART DISENGAGE"
+Title.Text = "J50: GEAR SAFE"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 100, 0)
+Title.TextColor3 = Color3.fromRGB(0, 255, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
@@ -154,10 +154,12 @@ SpeedBtn.MouseButton1Click:Connect(function()
     Config.Enabled = not Config.Enabled
     if Config.Enabled then
         SpeedBtn.Text = "⚡ SPEED HACK: ON"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 0) -- Gold/Orange
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+        SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
         SpeedBtn.Text = "⚡ SPEED HACK: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         currentSeat = nil
     end
 end)
@@ -204,11 +206,11 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.Parent = ControlFrame
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === PHYSICS LOOP (SMART DISENGAGE) ===
+-- === PHYSICS LOOP (GEAR & VELOCITY CHECK) ===
 RunService.Heartbeat:Connect(function()
     if not Config.Enabled then 
         if currentSeat then
-            local thrust = currentSeat:FindFirstChild("J49_Thrust")
+            local thrust = currentSeat:FindFirstChild("J50_Thrust")
             if thrust then thrust:Destroy() end
             currentSeat = nil
         end
@@ -238,9 +240,10 @@ RunService.Heartbeat:Connect(function()
         return 
     end
     
-    -- 2. READ VALUES (Strict Priority)
+    -- 2. READ VALUES (Throttle, Brake, Gear)
     local gasVal = 0
     local brakeVal = 0
+    local gearVal = 1 -- Default to forward
     
     local interface = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("A-Chassis Interface")
     if interface then
@@ -248,46 +251,72 @@ RunService.Heartbeat:Connect(function()
         if valFolder then
             local gObj = valFolder:FindFirstChild("Throttle")
             local bObj = valFolder:FindFirstChild("Brake")
+            local rObj = valFolder:FindFirstChild("Gear") -- Get Gear
+            
             if gObj then gasVal = gObj.Value end
             if bObj then brakeVal = bObj.Value end
+            if rObj then gearVal = rObj.Value end
         end
     end
     
-    -- 3. LOGIC (Disengage if Braking)
-    -- If brake is pressed AT ALL, we treat it as "Disabled" so natural physics apply.
+    -- 3. CHECK DIRECTION (Physics)
+    -- Is the car moving backward?
+    local isMovingBackward = false
+    local velocity = currentSeat.AssemblyLinearVelocity
+    local forwardDir = currentSeat.CFrame.LookVector
+    if velocity.Magnitude > 2 and velocity:Dot(forwardDir) < 0 then
+        isMovingBackward = true
+    end
     
-    local thrust = currentSeat:FindFirstChild("J49_Thrust")
-    local att = currentSeat:FindFirstChild("J49_Att")
+    -- 4. LOGIC TREE (Gear/Motion is King)
+    local action = "IDLE"
+    
+    if gearVal == -1 then
+        -- REVERSE GEAR: Disable Boost completely
+        action = "NATURAL REVERSE (Gear R)"
+        DebugLabel.TextColor3 = Color3.fromRGB(255, 200, 0) -- Gold
+        
+    elseif isMovingBackward then
+        -- MOVING BACKWARDS: Disable Boost
+        action = "NATURAL REVERSE (Motion)"
+        DebugLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+        
+    elseif brakeVal > 0 then
+        -- BRAKING: Disable Boost
+        action = "BRAKING"
+        DebugLabel.TextColor3 = Color3.fromRGB(255, 50, 50) -- Red
+        
+    elseif gasVal > Config.Deadzone then
+        -- GAS (And confirmed Forward): Boost!
+        action = "BOOSTING"
+        DebugLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+    else
+        action = "IDLE"
+        DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    end
+    
+    DebugLabel.Text = "Status: " .. action
+    
+    -- 5. APPLY PHYSICS
+    local att = currentSeat:FindFirstChild("J50_Att")
+    local thrust = currentSeat:FindFirstChild("J50_Thrust")
     
     if not att then
         att = Instance.new("Attachment", currentSeat)
-        att.Name = "J49_Att"
+        att.Name = "J50_Att"
     end
     
-    if brakeVal > 0 then
-        -- === BRAKING / REVERSING ===
-        -- Kill custom forces instantly. Let the game handle it naturally.
-        if thrust then thrust:Destroy() end
-        DebugLabel.Text = "Status: NATURAL REVERSE"
-        DebugLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Yellow
-        
-    elseif gasVal > Config.Deadzone then
-        -- === ACCELERATING ===
-        -- Only boost if NOT braking and throttle > 10%
+    if action == "BOOSTING" then
         if not thrust then
             thrust = Instance.new("VectorForce", currentSeat)
-            thrust.Name = "J49_Thrust"
+            thrust.Name = "J50_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
-        thrust.Force = Vector3.new(0, 0, -Config.BoostPower) -- Forward
-        DebugLabel.Text = "Status: BOOSTING"
-        DebugLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
-        
+        -- Forward Boost
+        thrust.Force = Vector3.new(0, 0, -Config.BoostPower)
     else
-        -- === IDLE ===
+        -- KILL FORCE for any other state (Brake, Reverse, Idle)
         if thrust then thrust:Destroy() end
-        DebugLabel.Text = "Status: IDLE"
-        DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150) -- Grey
     end
 end)
