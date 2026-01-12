@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV44: AUTO-REFRESH ]] --
--- Features: Auto-Detects New Cars, 7000 Power, Native Hook, Traffic Jammer
--- Optimized for Delta | Fixes "Stop Working After Respawn" bug
+-- [[ JOSEPEDOV45: DUAL-DIRECTION ]] --
+-- Features: Brake/Reverse Detection, Reverse Boost, Traffic Jammer
+-- Optimized for Delta | Fixes "Fighting" by detecting Brake Input
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,13 +12,14 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000,   -- Sweet Spot
+    BoostPower = 7000,   -- Forward Power
+    ReversePower = 4000, -- Reverse Power (Slightly lower for control)
     Enabled = false,     -- Master Toggle
     Deadzone = 0.1       -- 10% Deadzone
 }
 
 -- === STATE VARIABLES ===
-local currentSeat = nil -- Stores the active car seat
+local currentSeat = nil
 
 -- === DRAG FUNCTION ===
 local function MakeDraggable(gui)
@@ -70,7 +71,7 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV44_UI"
+ScreenGui.Name = "JOSEPEDOV45_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- [1] THE ICON
@@ -78,8 +79,8 @@ local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Lime
-OpenIcon.Text = "J44"
+OpenIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Yellow
+OpenIcon.Text = "J45"
 OpenIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
@@ -93,18 +94,18 @@ local ControlFrame = Instance.new("Frame")
 ControlFrame.Name = "ControlFrame"
 ControlFrame.Size = UDim2.new(0, 200, 0, 160)
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-ControlFrame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 10)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(0, 255, 0)
+ControlFrame.BorderColor3 = Color3.fromRGB(255, 255, 0)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
 MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J44: AUTO-REFRESH"
+Title.Text = "J45: REVERSE FIX"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 255, 0)
+Title.TextColor3 = Color3.fromRGB(255, 255, 0)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
@@ -153,14 +154,13 @@ Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
 SpeedBtn.MouseButton1Click:Connect(function()
     Config.Enabled = not Config.Enabled
     if Config.Enabled then
-        SpeedBtn.Text = "⚡ SPEED HACK: ON\n(Auto-Detects Car)"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        SpeedBtn.Text = "⚡ SPEED HACK: ON\n(Supports Reverse)"
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
         SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
         SpeedBtn.Text = "⚡ SPEED HACK: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        -- Reset seat on disable to be safe
         currentSeat = nil
     end
 end)
@@ -196,11 +196,11 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.Parent = ControlFrame
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === PHYSICS LOOP (AUTO-REFRESH) ===
+-- === PHYSICS LOOP (DUAL DIRECTION) ===
 RunService.Heartbeat:Connect(function()
     if not Config.Enabled then 
         if currentSeat then
-            local thrust = currentSeat:FindFirstChild("J44_Thrust")
+            local thrust = currentSeat:FindFirstChild("J45_Thrust")
             if thrust then thrust:Destroy() end
             currentSeat = nil
         end
@@ -210,71 +210,78 @@ RunService.Heartbeat:Connect(function()
     local char = player.Character
     if not char then return end
     
-    -- === STEP 1: VALIDATE CURRENT CAR ===
-    -- If we have a seat, check if it still exists in Workspace
-    if currentSeat then
-        if not currentSeat.Parent or not currentSeat:IsDescendantOf(Workspace) then
-            -- Old car was deleted/despawned
-            currentSeat = nil 
-        end
+    -- 1. Refresh Car
+    if currentSeat and (not currentSeat.Parent or not currentSeat:IsDescendantOf(Workspace)) then
+        currentSeat = nil
     end
     
-    -- === STEP 2: FIND NEW CAR (If needed) ===
     if not currentSeat then
         local humanoid = char:FindFirstChild("Humanoid")
-        
-        -- Priority A: Humanoid Seat (You are sitting)
         if humanoid and humanoid.SeatPart then
             currentSeat = humanoid.SeatPart
         else
-            -- Priority B: Manual Search (You are in the model but not "Sitting")
             local carModel = Workspace:FindFirstChild("Lf20Besaya's Car")
-            if carModel then 
-                currentSeat = carModel:FindFirstChild("DriveSeat") 
-            end
+            if carModel then currentSeat = carModel:FindFirstChild("DriveSeat") end
         end
     end
     
-    -- If still no seat, stop here (wait for next frame)
     if not currentSeat then return end
     
-    -- === STEP 3: READ THROTTLE (Deadzone Logic) ===
-    local throttleValue = 0
+    -- 2. READ INPUTS (Gas AND Brake)
+    local gasVal = 0
+    local brakeVal = 0
     
-    -- Try Interface First
+    -- Try reading A-Chassis Interface
     local interface = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("A-Chassis Interface")
     if interface then
         local valFolder = interface:FindFirstChild("Values")
         if valFolder then
-            local tObj = valFolder:FindFirstChild("Throttle")
-            if tObj then throttleValue = tObj.Value end
+            local gObj = valFolder:FindFirstChild("Throttle")
+            local bObj = valFolder:FindFirstChild("Brake")
+            if gObj then gasVal = gObj.Value end
+            if bObj then brakeVal = bObj.Value end
         end
     end
     
-    -- Fallback to Seat Property
-    if throttleValue == 0 and currentSeat.Throttle > 0 then
-        throttleValue = currentSeat.Throttle
+    -- Fallback: Seat Property (Handling W/S)
+    if gasVal == 0 and brakeVal == 0 then
+        if currentSeat.Throttle > 0 then gasVal = 1 end
+        if currentSeat.Throttle < 0 then brakeVal = 1 end
     end
     
-    -- === STEP 4: APPLY PHYSICS ===
-    local att = currentSeat:FindFirstChild("J44_Att")
-    local thrust = currentSeat:FindFirstChild("J44_Thrust")
+    -- 3. DETERMINE DIRECTION (Brake Wins)
+    local targetForce = 0
+    
+    if brakeVal > Config.Deadzone then
+        -- REVERSE: Apply Positive Z (Backward)
+        targetForce = Config.ReversePower 
+    elseif gasVal > Config.Deadzone then
+        -- FORWARD: Apply Negative Z (Forward)
+        targetForce = -Config.BoostPower 
+    else
+        -- IDLE: No Force
+        targetForce = 0
+    end
+    
+    -- 4. APPLY PHYSICS
+    local att = currentSeat:FindFirstChild("J45_Att")
+    local thrust = currentSeat:FindFirstChild("J45_Thrust")
     
     if not att then
         att = Instance.new("Attachment", currentSeat)
-        att.Name = "J44_Att"
+        att.Name = "J45_Att"
     end
     
-    -- Deadzone Check (0.1 > 0.03 Idle)
-    if throttleValue > Config.Deadzone then
+    if targetForce ~= 0 then
         if not thrust then
             thrust = Instance.new("VectorForce", currentSeat)
-            thrust.Name = "J44_Thrust"
+            thrust.Name = "J45_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
-        thrust.Force = Vector3.new(0, 0, -Config.BoostPower) -- Go Fast
+        thrust.Force = Vector3.new(0, 0, targetForce)
     else
-        if thrust then thrust:Destroy() end -- Stop instantly
+        -- Kill power instantly on release
+        if thrust then thrust:Destroy() end
     end
 end)
