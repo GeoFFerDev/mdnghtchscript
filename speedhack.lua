@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV43: NATIVE HOOK ]] --
--- Features: Reads A-Chassis Internal Values, 7000 Force, Traffic Jammer
--- Optimized for Delta | Fixes "Continuous Run" by ignoring Idle Throttle
+-- [[ JOSEPEDOV44: AUTO-REFRESH ]] --
+-- Features: Auto-Detects New Cars, 7000 Power, Native Hook, Traffic Jammer
+-- Optimized for Delta | Fixes "Stop Working After Respawn" bug
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,10 +12,13 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000,   -- The Sweet Spot
+    BoostPower = 7000,   -- Sweet Spot
     Enabled = false,     -- Master Toggle
-    Deadzone = 0.1       -- 10% Deadzone (Ignores the 3% idle)
+    Deadzone = 0.1       -- 10% Deadzone
 }
+
+-- === STATE VARIABLES ===
+local currentSeat = nil -- Stores the active car seat
 
 -- === DRAG FUNCTION ===
 local function MakeDraggable(gui)
@@ -67,7 +70,7 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV43_UI"
+ScreenGui.Name = "JOSEPEDOV44_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- [1] THE ICON
@@ -75,9 +78,9 @@ local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(255, 50, 0) -- Neon Red
-OpenIcon.Text = "J43"
-OpenIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Lime
+OpenIcon.Text = "J44"
+OpenIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
 OpenIcon.Visible = false 
@@ -90,18 +93,18 @@ local ControlFrame = Instance.new("Frame")
 ControlFrame.Name = "ControlFrame"
 ControlFrame.Size = UDim2.new(0, 200, 0, 160)
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(255, 50, 0)
+ControlFrame.BorderColor3 = Color3.fromRGB(0, 255, 0)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
 MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J43: NATIVE HOOK"
+Title.Text = "J44: AUTO-REFRESH"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 50, 0)
+Title.TextColor3 = Color3.fromRGB(0, 255, 0)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
@@ -150,13 +153,15 @@ Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
 SpeedBtn.MouseButton1Click:Connect(function()
     Config.Enabled = not Config.Enabled
     if Config.Enabled then
-        SpeedBtn.Text = "⚡ SPEED HACK: ON\n(Uses Game Throttle)"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+        SpeedBtn.Text = "⚡ SPEED HACK: ON\n(Auto-Detects Car)"
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
         SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
         SpeedBtn.Text = "⚡ SPEED HACK: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        -- Reset seat on disable to be safe
+        currentSeat = nil
     end
 end)
 
@@ -191,43 +196,52 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.Parent = ControlFrame
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === PHYSICS LOOP (THE FIX) ===
+-- === PHYSICS LOOP (AUTO-REFRESH) ===
 RunService.Heartbeat:Connect(function()
     if not Config.Enabled then 
-        -- Cleanup forces immediately if turned off
-        local char = player.Character
-        if char then
-            local seat = char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart
-            if seat then
-                local thrust = seat:FindFirstChild("J43_Thrust")
-                if thrust then thrust:Destroy() end
-            end
+        if currentSeat then
+            local thrust = currentSeat:FindFirstChild("J44_Thrust")
+            if thrust then thrust:Destroy() end
+            currentSeat = nil
         end
         return 
     end
     
-    -- 1. Get Car & Seat
-    local driveSeat = nil
-    local car = nil
     local char = player.Character
+    if not char then return end
     
-    if char and char:FindFirstChild("Humanoid") then
-        driveSeat = char.Humanoid.SeatPart
-        if driveSeat then car = driveSeat.Parent end
+    -- === STEP 1: VALIDATE CURRENT CAR ===
+    -- If we have a seat, check if it still exists in Workspace
+    if currentSeat then
+        if not currentSeat.Parent or not currentSeat:IsDescendantOf(Workspace) then
+            -- Old car was deleted/despawned
+            currentSeat = nil 
+        end
     end
     
-    -- Fallback search if not seated "officially"
-    if not driveSeat then
-        local carModel = Workspace:FindFirstChild("Lf20Besaya's Car")
-        if carModel then driveSeat = carModel:FindFirstChild("DriveSeat") end
+    -- === STEP 2: FIND NEW CAR (If needed) ===
+    if not currentSeat then
+        local humanoid = char:FindFirstChild("Humanoid")
+        
+        -- Priority A: Humanoid Seat (You are sitting)
+        if humanoid and humanoid.SeatPart then
+            currentSeat = humanoid.SeatPart
+        else
+            -- Priority B: Manual Search (You are in the model but not "Sitting")
+            local carModel = Workspace:FindFirstChild("Lf20Besaya's Car")
+            if carModel then 
+                currentSeat = carModel:FindFirstChild("DriveSeat") 
+            end
+        end
     end
     
-    if not driveSeat then return end
+    -- If still no seat, stop here (wait for next frame)
+    if not currentSeat then return end
     
-    -- 2. DETERMINE THROTTLE (The Native Hook)
+    -- === STEP 3: READ THROTTLE (Deadzone Logic) ===
     local throttleValue = 0
     
-    -- Priority A: Check the A-Chassis Interface (Based on your logs)
+    -- Try Interface First
     local interface = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("A-Chassis Interface")
     if interface then
         local valFolder = interface:FindFirstChild("Values")
@@ -237,34 +251,30 @@ RunService.Heartbeat:Connect(function()
         end
     end
     
-    -- Priority B: Fallback to Seat Property if interface fails
-    if throttleValue == 0 and driveSeat.Throttle > 0 then
-        throttleValue = driveSeat.Throttle
+    -- Fallback to Seat Property
+    if throttleValue == 0 and currentSeat.Throttle > 0 then
+        throttleValue = currentSeat.Throttle
     end
     
-    -- 3. APPLY FORCE (Deadzone Check)
-    local att = driveSeat:FindFirstChild("J43_Att")
-    local thrust = driveSeat:FindFirstChild("J43_Thrust")
+    -- === STEP 4: APPLY PHYSICS ===
+    local att = currentSeat:FindFirstChild("J44_Att")
+    local thrust = currentSeat:FindFirstChild("J44_Thrust")
     
     if not att then
-        att = Instance.new("Attachment", driveSeat)
-        att.Name = "J43_Att"
+        att = Instance.new("Attachment", currentSeat)
+        att.Name = "J44_Att"
     end
     
-    -- **CRITICAL FIX**: Only boost if Throttle > 0.1 (Ignores 0.03 Idle)
+    -- Deadzone Check (0.1 > 0.03 Idle)
     if throttleValue > Config.Deadzone then
         if not thrust then
-            thrust = Instance.new("VectorForce", driveSeat)
-            thrust.Name = "J43_Thrust"
+            thrust = Instance.new("VectorForce", currentSeat)
+            thrust.Name = "J44_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
-        -- Apply the Sweet Spot Power
-        thrust.Force = Vector3.new(0, 0, -Config.BoostPower)
+        thrust.Force = Vector3.new(0, 0, -Config.BoostPower) -- Go Fast
     else
-        -- If Throttle drops to idle (0.03), KILL the force immediately
-        if thrust then 
-            thrust:Destroy() 
-        end
+        if thrust then thrust:Destroy() end -- Stop instantly
     end
 end)
