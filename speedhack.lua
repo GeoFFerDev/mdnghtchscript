@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV36: CLEAN SCREEN ]] --
--- Features: Minimizeable UI, Draggable Icon, Virtual Pedals, Natural Drive
--- Optimized for Delta | The Final "Sweet Spot" Version
+-- [[ JOSEPEDOV37: PERSISTENT EDITION ]] --
+-- Features: Menu Minimizes BUT Pedals Stay, New Pedal Toggle, Traffic Jammer
+-- Optimized for Delta | Fixes "Pedals Disappearing" bug
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,13 +12,13 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000,   -- The Sweet Spot
+    BoostPower = 7000,   -- Sweet Spot
     InputState = "IDLE", -- GAS, BRAKE, IDLE
-    StopThreshold = 5,   -- Parking Brake Threshold
-    UIHidden = false     -- Toggle State
+    StopThreshold = 5,   
+    PedalsVisible = true -- New state tracker
 }
 
--- === DRAG FUNCTION (Mobile & PC Friendly) ===
+-- === DRAG FUNCTION ===
 local function MakeDraggable(gui)
     local dragging
     local dragInput
@@ -76,7 +76,7 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV36_UI"
+ScreenGui.Name = "JOSEPEDOV37_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- [1] THE ICON (Visible when minimized)
@@ -84,41 +84,41 @@ local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.2, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 255, 255) -- Cyan
-OpenIcon.Text = "J36"
+OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 255, 100) -- Green
+OpenIcon.Text = "J37"
 OpenIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
 OpenIcon.Visible = false -- Hidden by default
 OpenIcon.Parent = ScreenGui
-Instance.new("UICorner", OpenIcon).CornerRadius = UDim.new(0, 25) -- Circle
-MakeDraggable(OpenIcon) -- MAKE IT DRAGGABLE!
+Instance.new("UICorner", OpenIcon).CornerRadius = UDim.new(0, 25)
+MakeDraggable(OpenIcon)
 
 -- [2] MAIN CONTROL PANEL
 local ControlFrame = Instance.new("Frame")
 ControlFrame.Name = "ControlFrame"
-ControlFrame.Size = UDim2.new(0, 160, 0, 90)
+ControlFrame.Size = UDim2.new(0, 180, 0, 140) -- Taller for new button
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
 ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(0, 255, 255)
+ControlFrame.BorderColor3 = Color3.fromRGB(0, 255, 100)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
-MakeDraggable(ControlFrame) -- MAKE IT DRAGGABLE!
+MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J36: CLEAN"
+Title.Text = "J37: PERSISTENT"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 255, 255)
+Title.TextColor3 = Color3.fromRGB(0, 255, 100)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
 
 -- Traffic Button
 local TrafficBtn = Instance.new("TextButton")
-TrafficBtn.Size = UDim2.new(0.9, 0, 0, 40)
-TrafficBtn.Position = UDim2.new(0.05, 0, 0.40, 0)
+TrafficBtn.Size = UDim2.new(0.9, 0, 0, 35)
+TrafficBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
 TrafficBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 TrafficBtn.Text = "🚫 Kill Traffic"
 TrafficBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -143,6 +143,18 @@ TrafficBtn.MouseButton1Click:Connect(function()
         if event then for _, c in pairs(getconnections(event.OnClientEvent)) do c:Enable() end end
     end
 end)
+
+-- [NEW] Show/Hide Pedals Toggle
+local TogglePedalsBtn = Instance.new("TextButton")
+TogglePedalsBtn.Size = UDim2.new(0.9, 0, 0, 35)
+TogglePedalsBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+TogglePedalsBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TogglePedalsBtn.Text = "👁️ Hide Pedals"
+TogglePedalsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TogglePedalsBtn.Font = Enum.Font.GothamBold
+TogglePedalsBtn.TextSize = 14
+TogglePedalsBtn.Parent = ControlFrame
+Instance.new("UICorner", TogglePedalsBtn).CornerRadius = UDim.new(0, 6)
 
 -- Minimize Button (-)
 local MinBtn = Instance.new("TextButton")
@@ -178,7 +190,7 @@ GasBtn.Font = Enum.Font.GothamBlack
 GasBtn.TextSize = 24
 GasBtn.Parent = ScreenGui
 Instance.new("UICorner", GasBtn).CornerRadius = UDim.new(0, 20)
-MakeDraggable(GasBtn) -- You can move the pedal if you want!
+MakeDraggable(GasBtn)
 
 local BrakeBtn = Instance.new("TextButton")
 BrakeBtn.Name = "BrakePedal"
@@ -192,25 +204,36 @@ BrakeBtn.Font = Enum.Font.GothamBlack
 BrakeBtn.TextSize = 16
 BrakeBtn.Parent = ScreenGui
 Instance.new("UICorner", BrakeBtn).CornerRadius = UDim.new(0, 20)
-MakeDraggable(BrakeBtn) -- You can move the brake too!
+MakeDraggable(BrakeBtn)
 
--- === MINIMIZE/OPEN LOGIC ===
+-- === LOGIC FIXES ===
+
+-- 1. Minimize: Only Hide MENU. Keep Pedals!
 MinBtn.MouseButton1Click:Connect(function()
-    -- Hide Everything
     ControlFrame.Visible = false
-    GasBtn.Visible = false
-    BrakeBtn.Visible = false
-    -- Show Icon
     OpenIcon.Visible = true
+    -- We do NOT touch GasBtn/BrakeBtn here anymore!
 end)
 
+-- 2. Open: Show MENU.
 OpenIcon.MouseButton1Click:Connect(function()
-    -- Show Everything
     ControlFrame.Visible = true
-    GasBtn.Visible = true
-    BrakeBtn.Visible = true
-    -- Hide Icon
     OpenIcon.Visible = false
+end)
+
+-- 3. Toggle Pedals: Explicit Control
+TogglePedalsBtn.MouseButton1Click:Connect(function()
+    Config.PedalsVisible = not Config.PedalsVisible
+    GasBtn.Visible = Config.PedalsVisible
+    BrakeBtn.Visible = Config.PedalsVisible
+    
+    if Config.PedalsVisible then
+        TogglePedalsBtn.Text = "👁️ Hide Pedals"
+        TogglePedalsBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    else
+        TogglePedalsBtn.Text = "👁️ Show Pedals"
+        TogglePedalsBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    end
 end)
 
 -- === INPUT HANDLING ===
@@ -222,7 +245,7 @@ BrakeBtn.MouseButton1Down:Connect(function() Config.InputState = "BRAKE"; BrakeB
 BrakeBtn.MouseButton1Up:Connect(function() Config.InputState = "IDLE"; BrakeBtn.BackgroundTransparency = 0.6 end)
 BrakeBtn.MouseLeave:Connect(function() Config.InputState = "IDLE"; BrakeBtn.BackgroundTransparency = 0.6 end)
 
--- === PHYSICS LOOP (SMART COASTING) ===
+-- === PHYSICS LOOP ===
 RunService.Heartbeat:Connect(function()
     local char = player.Character
     if not char then return end
@@ -238,20 +261,20 @@ RunService.Heartbeat:Connect(function()
     
     if not driveSeat then return end
     
-    local thrust = driveSeat:FindFirstChild("J36_Thrust")
-    local anchor = driveSeat:FindFirstChild("J36_Anchor")
-    local att = driveSeat:FindFirstChild("J36_Att")
+    local thrust = driveSeat:FindFirstChild("J37_Thrust")
+    local anchor = driveSeat:FindFirstChild("J37_Anchor")
+    local att = driveSeat:FindFirstChild("J37_Att")
     
     if not att then
         att = Instance.new("Attachment", driveSeat)
-        att.Name = "J36_Att"
+        att.Name = "J37_Att"
     end
     
     if Config.InputState == "GAS" then
         if anchor then anchor:Destroy() end
         if not thrust then
             thrust = Instance.new("VectorForce", driveSeat)
-            thrust.Name = "J36_Thrust"
+            thrust.Name = "J37_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
@@ -261,7 +284,7 @@ RunService.Heartbeat:Connect(function()
         if anchor then anchor:Destroy() end
         if not thrust then
             thrust = Instance.new("VectorForce", driveSeat)
-            thrust.Name = "J36_Thrust"
+            thrust.Name = "J37_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
@@ -272,13 +295,11 @@ RunService.Heartbeat:Connect(function()
         
         local speed = driveSeat.AssemblyLinearVelocity.Magnitude
         if speed > Config.StopThreshold then
-            -- Coasting (Natural Slowdown)
             if anchor then anchor:Destroy() end
         else
-            -- Parking Brake (Stop Creep)
             if not anchor then
                 anchor = Instance.new("BodyVelocity", driveSeat)
-                anchor.Name = "J36_Anchor"
+                anchor.Name = "J37_Anchor"
                 anchor.MaxForce = Vector3.new(100000, 0, 100000)
                 anchor.Velocity = Vector3.new(0, 0, 0)
             end
