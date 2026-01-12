@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV52: ADAPTIVE POWER ]] --
--- Features: Mass-Based Force, Reverse Lockout, Traffic Jammer
--- Optimized for Delta | Fixes "Expensive Car Too Slow" issue
+-- [[ JOSEPEDOV53: HANDLING ASSIST ]] --
+-- Features: Active Steering Assist, Cornering Grip, Adaptive Power
+-- Optimized for Delta | Fixes "Understeer" (Car going straight while turning)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,9 +12,11 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    PowerMultiplier = 3, -- Force = Mass * This (Default 3G acceleration)
-    Enabled = false,     -- Master Toggle
-    Deadzone = 0.1       -- Gas Threshold
+    BoostPower = 7000,    -- Forward Power Base
+    PowerMultiplier = 3,  -- Mass Multiplier
+    TurnStrength = 2.5,   -- How hard to "Help" turn (Adjustable)
+    Enabled = false,      -- Master Toggle
+    Deadzone = 0.1        -- Gas Threshold
 }
 
 -- === STATE ===
@@ -70,7 +72,7 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV52_UI"
+ScreenGui.Name = "JOSEPEDOV53_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- [1] THE ICON
@@ -78,9 +80,9 @@ local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 100, 255) -- Electric Blue
-OpenIcon.Text = "J52"
-OpenIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 255, 150) -- Teal
+OpenIcon.Text = "J53"
+OpenIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
 OpenIcon.Visible = false 
@@ -91,20 +93,20 @@ MakeDraggable(OpenIcon)
 -- [2] MAIN PANEL
 local ControlFrame = Instance.new("Frame")
 ControlFrame.Name = "ControlFrame"
-ControlFrame.Size = UDim2.new(0, 200, 0, 180)
+ControlFrame.Size = UDim2.new(0, 200, 0, 220) -- Taller for Turn Control
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-ControlFrame.BackgroundColor3 = Color3.fromRGB(10, 15, 25)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(10, 20, 20)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(0, 100, 255)
+ControlFrame.BorderColor3 = Color3.fromRGB(0, 255, 150)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
 MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J52: ADAPTIVE"
+Title.Text = "J53: HANDLING"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 100, 255)
+Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
@@ -138,11 +140,11 @@ TrafficBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Power Adjustment (Multiplier)
+-- Power Control
 local PowerLabel = Instance.new("TextLabel")
-PowerLabel.Text = "Power Ratio: 3x (Mass)"
+PowerLabel.Text = "Power: 3x"
 PowerLabel.Size = UDim2.new(1, 0, 0, 20)
-PowerLabel.Position = UDim2.new(0, 0, 0.35, 0)
+PowerLabel.Position = UDim2.new(0, 0, 0.32, 0)
 PowerLabel.BackgroundTransparency = 1
 PowerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 PowerLabel.Font = Enum.Font.GothamBold
@@ -151,8 +153,8 @@ PowerLabel.Parent = ControlFrame
 
 local MinusBtn = Instance.new("TextButton")
 MinusBtn.Text = "-"
-MinusBtn.Size = UDim2.new(0.4, 0, 0, 30)
-MinusBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
+MinusBtn.Size = UDim2.new(0.4, 0, 0, 25)
+MinusBtn.Position = UDim2.new(0.05, 0, 0.42, 0)
 MinusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinusBtn.Parent = ControlFrame
@@ -160,8 +162,8 @@ Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 6)
 
 local PlusBtn = Instance.new("TextButton")
 PlusBtn.Text = "+"
-PlusBtn.Size = UDim2.new(0.4, 0, 0, 30)
-PlusBtn.Position = UDim2.new(0.55, 0, 0.45, 0)
+PlusBtn.Size = UDim2.new(0.4, 0, 0, 25)
+PlusBtn.Position = UDim2.new(0.55, 0, 0.42, 0)
 PlusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 PlusBtn.Parent = ControlFrame
@@ -169,18 +171,57 @@ Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 6)
 
 MinusBtn.MouseButton1Click:Connect(function()
     Config.PowerMultiplier = math.max(0.5, Config.PowerMultiplier - 0.5)
-    PowerLabel.Text = "Power Ratio: " .. Config.PowerMultiplier .. "x (Mass)"
+    PowerLabel.Text = "Power: " .. Config.PowerMultiplier .. "x"
 end)
 
 PlusBtn.MouseButton1Click:Connect(function()
     Config.PowerMultiplier = Config.PowerMultiplier + 0.5
-    PowerLabel.Text = "Power Ratio: " .. Config.PowerMultiplier .. "x (Mass)"
+    PowerLabel.Text = "Power: " .. Config.PowerMultiplier .. "x"
+end)
+
+-- Turn Assist Control
+local TurnLabel = Instance.new("TextLabel")
+TurnLabel.Text = "Turn Assist: 2.5"
+TurnLabel.Size = UDim2.new(1, 0, 0, 20)
+TurnLabel.Position = UDim2.new(0, 0, 0.55, 0)
+TurnLabel.BackgroundTransparency = 1
+TurnLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+TurnLabel.Font = Enum.Font.GothamBold
+TurnLabel.TextSize = 12
+TurnLabel.Parent = ControlFrame
+
+local TurnMinusBtn = Instance.new("TextButton")
+TurnMinusBtn.Text = "<"
+TurnMinusBtn.Size = UDim2.new(0.4, 0, 0, 25)
+TurnMinusBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
+TurnMinusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TurnMinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TurnMinusBtn.Parent = ControlFrame
+Instance.new("UICorner", TurnMinusBtn).CornerRadius = UDim.new(0, 6)
+
+local TurnPlusBtn = Instance.new("TextButton")
+TurnPlusBtn.Text = ">"
+TurnPlusBtn.Size = UDim2.new(0.4, 0, 0, 25)
+TurnPlusBtn.Position = UDim2.new(0.55, 0, 0.65, 0)
+TurnPlusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TurnPlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TurnPlusBtn.Parent = ControlFrame
+Instance.new("UICorner", TurnPlusBtn).CornerRadius = UDim.new(0, 6)
+
+TurnMinusBtn.MouseButton1Click:Connect(function()
+    Config.TurnStrength = math.max(0, Config.TurnStrength - 0.5)
+    TurnLabel.Text = "Turn Assist: " .. Config.TurnStrength
+end)
+
+TurnPlusBtn.MouseButton1Click:Connect(function()
+    Config.TurnStrength = Config.TurnStrength + 0.5
+    TurnLabel.Text = "Turn Assist: " .. Config.TurnStrength
 end)
 
 -- Speed Toggle
 local SpeedBtn = Instance.new("TextButton")
-SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
-SpeedBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
+SpeedBtn.Size = UDim2.new(0.9, 0, 0, 35)
+SpeedBtn.Position = UDim2.new(0.05, 0, 0.80, 0)
 SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 SpeedBtn.Text = "⚡ SPEED HACK: OFF"
 SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -193,7 +234,7 @@ SpeedBtn.MouseButton1Click:Connect(function()
     Config.Enabled = not Config.Enabled
     if Config.Enabled then
         SpeedBtn.Text = "⚡ SPEED HACK: ON"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
         SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
         SpeedBtn.Text = "⚡ SPEED HACK: OFF"
@@ -202,17 +243,6 @@ SpeedBtn.MouseButton1Click:Connect(function()
         currentSeat = nil
     end
 end)
-
--- DEBUG LABEL
-local DebugLabel = Instance.new("TextLabel")
-DebugLabel.Text = "Status: IDLE"
-DebugLabel.Size = UDim2.new(1, 0, 0, 20)
-DebugLabel.Position = UDim2.new(0, 0, 0.88, 0)
-DebugLabel.BackgroundTransparency = 1
-DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-DebugLabel.Font = Enum.Font.Code
-DebugLabel.TextSize = 12
-DebugLabel.Parent = ControlFrame
 
 -- Minimize Logic
 local MinBtn = Instance.new("TextButton")
@@ -245,12 +275,14 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.Parent = ControlFrame
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === PHYSICS LOOP (ADAPTIVE POWER) ===
+-- === PHYSICS LOOP (HANDLING FIX) ===
 RunService.Heartbeat:Connect(function()
     if not Config.Enabled then 
         if currentSeat then
-            local thrust = currentSeat:FindFirstChild("J52_Thrust")
+            local thrust = currentSeat:FindFirstChild("J53_Thrust")
+            local turn = currentSeat:FindFirstChild("J53_Turn")
             if thrust then thrust:Destroy() end
+            if turn then turn:Destroy() end
             currentSeat = nil
         end
         return 
@@ -274,15 +306,13 @@ RunService.Heartbeat:Connect(function()
         end
     end
     
-    if not currentSeat then 
-        DebugLabel.Text = "Status: NO CAR"
-        return 
-    end
+    if not currentSeat then return end
     
-    -- 2. READ VALUES
+    -- 2. READ VALUES (Throttle, Brake, Gear, STEER)
     local gasVal = 0
     local brakeVal = 0
     local gearVal = 1
+    local steerVal = 0 -- -1 (Left) to 1 (Right)
     
     local interface = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("A-Chassis Interface")
     if interface then
@@ -291,63 +321,79 @@ RunService.Heartbeat:Connect(function()
             local gObj = valFolder:FindFirstChild("Throttle")
             local bObj = valFolder:FindFirstChild("Brake")
             local rObj = valFolder:FindFirstChild("Gear")
+            local sObj = valFolder:FindFirstChild("SteerT") -- Target Steer
             
             if gObj then gasVal = gObj.Value end
             if bObj then brakeVal = bObj.Value end
             if rObj then gearVal = rObj.Value end
+            if sObj then steerVal = sObj.Value end
         end
     end
     
-    -- 3. LOCKOUT LOGIC
-    local isReversing = false
-    if gearVal == -1 then isReversing = true end
-    if brakeVal > 0.1 then isReversing = true end
+    -- Fallback for Steer if GUI is missing (Mouse Steer)
+    if steerVal == 0 then steerVal = currentSeat.Steer end
     
-    local velocity = currentSeat.AssemblyLinearVelocity
-    local forwardDir = currentSeat.CFrame.LookVector
-    if velocity.Magnitude > 5 and velocity:Dot(forwardDir) < -1 then
-        isReversing = true
-    end
+    -- 3. LOGIC & PHYSICS
     
-    -- 4. APPLY PHYSICS
-    local att = currentSeat:FindFirstChild("J52_Att")
-    local thrust = currentSeat:FindFirstChild("J52_Thrust")
+    local att = currentSeat:FindFirstChild("J53_Att")
+    local thrust = currentSeat:FindFirstChild("J53_Thrust")
+    local turn = currentSeat:FindFirstChild("J53_Turn") -- Handling Assist
     
     if not att then
         att = Instance.new("Attachment", currentSeat)
-        att.Name = "J52_Att"
+        att.Name = "J53_Att"
     end
     
+    -- Check for Reverse (Lockout)
+    local isReversing = (gearVal == -1) or (brakeVal > 0.1)
+    
     if isReversing then
-        -- REVERSE: Lockout
+        -- DISABLE ALL ASSISTS IN REVERSE
         if thrust then thrust:Destroy() end
-        DebugLabel.Text = "Status: NATURAL REVERSE"
-        DebugLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+        if turn then turn:Destroy() end
         
     elseif gasVal > Config.Deadzone then
-        -- BOOSTING
+        -- === BOOSTING FORWARD ===
+        
+        -- A. Forward Force
         if not thrust then
             thrust = Instance.new("VectorForce", currentSeat)
-            thrust.Name = "J52_Thrust"
+            thrust.Name = "J53_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
         
-        -- **ADAPTIVE FORCE CALCULATION**
-        -- Force = Mass * Multiplier * Gravity_Compensation
         local mass = currentSeat.AssemblyMass
-        local targetForce = mass * Config.PowerMultiplier * 50 
-        -- Note: 50 is a base scalar to make "3x" feel fast but controllable
         
+        -- HANDLING LOGIC: Reduce speed if turning heavily to allow grip
+        local gripFactor = 1.0
+        if math.abs(steerVal) > 0.1 then
+            gripFactor = 0.7 -- Reduce power to 70% when turning
+        end
+        
+        local targetForce = mass * Config.PowerMultiplier * 50 * gripFactor
         thrust.Force = Vector3.new(0, 0, -targetForce)
         
-        DebugLabel.Text = "Status: BOOST (" .. math.floor(targetForce) .. "N)"
-        DebugLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+        -- B. Turn Assist (The Fix for Hard Steering)
+        if math.abs(steerVal) > 0.1 then
+            if not turn then
+                turn = Instance.new("BodyAngularVelocity", currentSeat)
+                turn.Name = "J53_Turn"
+                -- MaxTorque: Only apply to Y axis (Turning), prevent flipping (X/Z = 0)
+                turn.MaxTorque = Vector3.new(0, mass * 1000, 0) 
+            end
+            
+            -- Rotate based on steer direction
+            -- Positive Y is Left, Negative Y is Right usually.
+            -- We multiply by TurnStrength to control sharpness.
+            turn.AngularVelocity = Vector3.new(0, -steerVal * Config.TurnStrength, 0)
+        else
+            if turn then turn:Destroy() end
+        end
         
     else
         -- IDLE
         if thrust then thrust:Destroy() end
-        DebugLabel.Text = "Status: IDLE"
-        DebugLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        if turn then turn:Destroy() end
     end
 end)
