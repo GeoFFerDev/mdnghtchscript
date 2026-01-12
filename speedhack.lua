@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV42: DEADZONE FIX ]] --
--- Features: Idle Throttle Filter (Fixes continuous run), 7000 Power, Traffic Jammer
--- Optimized for Delta | Solves the "3% Idle" bug found in your logs
+-- [[ JOSEPEDOV43: NATIVE HOOK ]] --
+-- Features: Reads A-Chassis Internal Values, 7000 Force, Traffic Jammer
+-- Optimized for Delta | Fixes "Continuous Run" by ignoring Idle Throttle
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,9 +12,9 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000, -- The Sweet Spot
-    Enabled = false,   -- Master Toggle
-    Deadzone = 0.2     -- IGNORE inputs below 20% (Fixes Idle Run)
+    BoostPower = 7000,   -- The Sweet Spot
+    Enabled = false,     -- Master Toggle
+    Deadzone = 0.1       -- 10% Deadzone (Ignores the 3% idle)
 }
 
 -- === DRAG FUNCTION ===
@@ -67,16 +67,16 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV42_UI"
+ScreenGui.Name = "JOSEPEDOV43_UI"
 ScreenGui.Parent = game.CoreGui
 
--- [1] THE ICON (Visible when minimized)
+-- [1] THE ICON
 local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(255, 0, 255) -- Magenta
-OpenIcon.Text = "J42"
+OpenIcon.BackgroundColor3 = Color3.fromRGB(255, 50, 0) -- Neon Red
+OpenIcon.Text = "J43"
 OpenIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
@@ -85,23 +85,23 @@ OpenIcon.Parent = ScreenGui
 Instance.new("UICorner", OpenIcon).CornerRadius = UDim.new(0, 25)
 MakeDraggable(OpenIcon)
 
--- [2] MAIN CONTROL PANEL
+-- [2] MAIN PANEL
 local ControlFrame = Instance.new("Frame")
 ControlFrame.Name = "ControlFrame"
 ControlFrame.Size = UDim2.new(0, 200, 0, 160)
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(255, 0, 255)
+ControlFrame.BorderColor3 = Color3.fromRGB(255, 50, 0)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
 MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J42: DEADZONE"
+Title.Text = "J43: NATIVE HOOK"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 0, 255)
+Title.TextColor3 = Color3.fromRGB(255, 50, 0)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
@@ -140,7 +140,7 @@ local SpeedBtn = Instance.new("TextButton")
 SpeedBtn.Size = UDim2.new(0.9, 0, 0, 50)
 SpeedBtn.Position = UDim2.new(0.05, 0, 0.50, 0)
 SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-SpeedBtn.Text = "⚡ SPEED ASSIST: OFF"
+SpeedBtn.Text = "⚡ SPEED HACK: OFF"
 SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SpeedBtn.Font = Enum.Font.GothamBold
 SpeedBtn.TextSize = 14
@@ -150,17 +150,17 @@ Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 6)
 SpeedBtn.MouseButton1Click:Connect(function()
     Config.Enabled = not Config.Enabled
     if Config.Enabled then
-        SpeedBtn.Text = "⚡ SPEED ASSIST: ON\n(Press Gas to Engage)"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+        SpeedBtn.Text = "⚡ SPEED HACK: ON\n(Uses Game Throttle)"
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
         SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
     else
-        SpeedBtn.Text = "⚡ SPEED ASSIST: OFF"
+        SpeedBtn.Text = "⚡ SPEED HACK: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     end
 end)
 
--- Minimize Button (-)
+-- Minimize Logic
 local MinBtn = Instance.new("TextButton")
 MinBtn.Text = "-"
 MinBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -171,17 +171,6 @@ MinBtn.Font = Enum.Font.GothamBold
 MinBtn.TextSize = 24
 MinBtn.Parent = ControlFrame
 
--- Close Button (X)
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Text = "X"
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(0.85, 0, 0, 0)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-CloseBtn.Parent = ControlFrame
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
--- LOGIC
 MinBtn.MouseButton1Click:Connect(function()
     ControlFrame.Visible = false
     OpenIcon.Visible = true
@@ -192,74 +181,88 @@ OpenIcon.MouseButton1Click:Connect(function()
     OpenIcon.Visible = false
 end)
 
--- === PHYSICS LOOP ===
+-- Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Text = "X"
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(0.85, 0, 0, 0)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.Parent = ControlFrame
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- === PHYSICS LOOP (THE FIX) ===
 RunService.Heartbeat:Connect(function()
     if not Config.Enabled then 
-        -- Safety Cleanup
+        -- Cleanup forces immediately if turned off
         local char = player.Character
         if char then
-            local humanoid = char:FindFirstChild("Humanoid")
-            if humanoid and humanoid.SeatPart then
-                local thrust = humanoid.SeatPart:FindFirstChild("J42_Thrust")
+            local seat = char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart
+            if seat then
+                local thrust = seat:FindFirstChild("J43_Thrust")
                 if thrust then thrust:Destroy() end
             end
         end
         return 
     end
     
-    local char = player.Character
-    if not char then return end
-    
-    -- Auto-Find Car/Seat
+    -- 1. Get Car & Seat
     local driveSeat = nil
-    local humanoid = char:FindFirstChild("Humanoid")
-    if humanoid and humanoid.SeatPart then
-        driveSeat = humanoid.SeatPart
-    else
+    local car = nil
+    local char = player.Character
+    
+    if char and char:FindFirstChild("Humanoid") then
+        driveSeat = char.Humanoid.SeatPart
+        if driveSeat then car = driveSeat.Parent end
+    end
+    
+    -- Fallback search if not seated "officially"
+    if not driveSeat then
         local carModel = Workspace:FindFirstChild("Lf20Besaya's Car")
         if carModel then driveSeat = carModel:FindFirstChild("DriveSeat") end
     end
     
     if not driveSeat then return end
     
-    -- === INPUT FILTER (The Fix) ===
-    local isGasPressed = false
+    -- 2. DETERMINE THROTTLE (The Native Hook)
+    local throttleValue = 0
     
-    -- We check if Throttle is greater than the Deadzone (0.2)
-    -- This ignores the 0.03 "Idle Throttle" that caused the bug.
-    if driveSeat.Throttle > Config.Deadzone then 
-        isGasPressed = true 
+    -- Priority A: Check the A-Chassis Interface (Based on your logs)
+    local interface = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("A-Chassis Interface")
+    if interface then
+        local valFolder = interface:FindFirstChild("Values")
+        if valFolder then
+            local tObj = valFolder:FindFirstChild("Throttle")
+            if tObj then throttleValue = tObj.Value end
+        end
     end
     
-    -- Backup Keys (PC/Gamepad)
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then
-        isGasPressed = true
+    -- Priority B: Fallback to Seat Property if interface fails
+    if throttleValue == 0 and driveSeat.Throttle > 0 then
+        throttleValue = driveSeat.Throttle
     end
-
-    -- === PHYSICS APPLICATION ===
-    local att = driveSeat:FindFirstChild("J42_Att")
-    local thrust = driveSeat:FindFirstChild("J42_Thrust")
+    
+    -- 3. APPLY FORCE (Deadzone Check)
+    local att = driveSeat:FindFirstChild("J43_Att")
+    local thrust = driveSeat:FindFirstChild("J43_Thrust")
     
     if not att then
         att = Instance.new("Attachment", driveSeat)
-        att.Name = "J42_Att"
+        att.Name = "J43_Att"
     end
     
-    if isGasPressed then
-        -- APPLY FORCE (7000)
+    -- **CRITICAL FIX**: Only boost if Throttle > 0.1 (Ignores 0.03 Idle)
+    if throttleValue > Config.Deadzone then
         if not thrust then
             thrust = Instance.new("VectorForce", driveSeat)
-            thrust.Name = "J42_Thrust"
+            thrust.Name = "J43_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
-        
-        -- Negative Z is Forward
+        -- Apply the Sweet Spot Power
         thrust.Force = Vector3.new(0, 0, -Config.BoostPower)
-        
     else
-        -- KILL FORCE INSTANTLY
-        -- If you let go (or throttle drops to 0.03), this runs.
+        -- If Throttle drops to idle (0.03), KILL the force immediately
         if thrust then 
             thrust:Destroy() 
         end
