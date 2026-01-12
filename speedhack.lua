@@ -1,6 +1,6 @@
--- [[ JOSEPEDOV47: PRIORITY FIX ]] --
--- Features: Brake Priority Logic, Internal Value Reading, Traffic Jammer
--- Optimized for Delta | Fixes "Brake Accelerates" by checking Brake FIRST
+-- [[ JOSEPEDOV48: STRICT OVERRIDE ]] --
+-- Features: Brake Priority, GUI Value Reader, Reverse Assist
+-- Optimized for Delta | Fixes "Fighting" by strictly prioritizing Brake
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,10 +12,10 @@ local player = Players.LocalPlayer
 -- === CONFIGURATION ===
 local Config = {
     TrafficBlocked = false,
-    BoostPower = 7000,   -- Forward Power
-    ReversePower = 4000, -- Reverse Power
+    BoostPower = 7000,   -- Forward Force
+    ReversePower = 3000, -- Reverse Force (Safety lowered)
     Enabled = false,     -- Master Toggle
-    Deadzone = 0.1       -- 10% Deadzone (Ignores 3% idle)
+    Deadzone = 0.1       -- Ignored Throttle (0.03 Idle)
 }
 
 -- === STATE ===
@@ -71,7 +71,7 @@ InstallTrafficHook()
 
 -- === UI CREATION ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JOSEPEDOV47_UI"
+ScreenGui.Name = "JOSEPEDOV48_UI"
 ScreenGui.Parent = game.CoreGui
 
 -- [1] THE ICON
@@ -79,9 +79,9 @@ local OpenIcon = Instance.new("TextButton")
 OpenIcon.Name = "OpenIcon"
 OpenIcon.Size = UDim2.new(0, 50, 0, 50)
 OpenIcon.Position = UDim2.new(0.02, 0, 0.4, 0)
-OpenIcon.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Lime Green
-OpenIcon.Text = "J47"
-OpenIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
+OpenIcon.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red
+OpenIcon.Text = "J48"
+OpenIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
 OpenIcon.Font = Enum.Font.GothamBlack
 OpenIcon.TextSize = 18
 OpenIcon.Visible = false 
@@ -92,20 +92,20 @@ MakeDraggable(OpenIcon)
 -- [2] MAIN PANEL
 local ControlFrame = Instance.new("Frame")
 ControlFrame.Name = "ControlFrame"
-ControlFrame.Size = UDim2.new(0, 200, 0, 160)
+ControlFrame.Size = UDim2.new(0, 200, 0, 180)
 ControlFrame.Position = UDim2.new(0.02, 0, 0.3, 0)
-ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 15)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(20, 10, 10)
 ControlFrame.BorderSizePixel = 2
-ControlFrame.BorderColor3 = Color3.fromRGB(0, 255, 0)
+ControlFrame.BorderColor3 = Color3.fromRGB(255, 0, 0)
 ControlFrame.Active = true
 ControlFrame.Parent = ScreenGui
 MakeDraggable(ControlFrame)
 
 local Title = Instance.new("TextLabel")
-Title.Text = "J47: PRIORITY FIX"
+Title.Text = "J48: STRICT OVERRIDE"
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 255, 0)
+Title.TextColor3 = Color3.fromRGB(255, 0, 0)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
 Title.Parent = ControlFrame
@@ -155,19 +155,17 @@ SpeedBtn.MouseButton1Click:Connect(function()
     Config.Enabled = not Config.Enabled
     if Config.Enabled then
         SpeedBtn.Text = "⚡ SPEED HACK: ON"
-        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        SpeedBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     else
         SpeedBtn.Text = "⚡ SPEED HACK: OFF"
         SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         currentSeat = nil
     end
 end)
 
 -- DEBUG LABEL
 local DebugLabel = Instance.new("TextLabel")
-DebugLabel.Text = "Status: IDLE"
+DebugLabel.Text = "Waiting..."
 DebugLabel.Size = UDim2.new(1, 0, 0, 20)
 DebugLabel.Position = UDim2.new(0, 0, 0.85, 0)
 DebugLabel.BackgroundTransparency = 1
@@ -207,11 +205,11 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.Parent = ControlFrame
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- === PHYSICS LOOP (PRIORITY LOGIC) ===
+-- === PHYSICS LOOP (THE SOLUTION) ===
 RunService.Heartbeat:Connect(function()
     if not Config.Enabled then 
         if currentSeat then
-            local thrust = currentSeat:FindFirstChild("J47_Thrust")
+            local thrust = currentSeat:FindFirstChild("J48_Thrust")
             if thrust then thrust:Destroy() end
             currentSeat = nil
         end
@@ -221,7 +219,7 @@ RunService.Heartbeat:Connect(function()
     local char = player.Character
     if not char then return end
     
-    -- 1. Refresh Car (Auto-Detect)
+    -- 1. Refresh Car
     if currentSeat and (not currentSeat.Parent or not currentSeat:IsDescendantOf(Workspace)) then
         currentSeat = nil
     end
@@ -241,10 +239,11 @@ RunService.Heartbeat:Connect(function()
         return 
     end
     
-    -- 2. READ INTERNAL VALUES
+    -- 2. READ VALUES (Strict GUI Check)
     local gasVal = 0
     local brakeVal = 0
     
+    -- We ONLY check the Interface Values. No Seat property fallback (causes bugs on mobile).
     local interface = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("A-Chassis Interface")
     if interface then
         local valFolder = interface:FindFirstChild("Values")
@@ -254,36 +253,40 @@ RunService.Heartbeat:Connect(function()
             if gObj then gasVal = gObj.Value end
             if bObj then brakeVal = bObj.Value end
         end
+    else
+        -- If UI is missing, we assume idle to be safe
+        DebugLabel.Text = "Status: UI NOT FOUND"
+        return
     end
     
-    -- 3. DETERMINE ACTION (CRITICAL FIX)
-    -- We ignore Gas if Brake is pressed at all.
-    
+    -- 3. LOGIC (Brake Overrides Gas)
     local action = "IDLE"
     
     if brakeVal > 0 then
-        action = "BRAKE" -- Priority 1: Reverse/Brake
+        -- Even 1% brake kills the forward boost
+        action = "BRAKE"
     elseif gasVal > Config.Deadzone then
-        action = "GAS"   -- Priority 2: Forward (if not braking)
+        -- Only boost if Gas > 10% (Ignores 3% idle)
+        action = "GAS"
     else
         action = "IDLE"
     end
     
-    DebugLabel.Text = "Status: " .. action
+    DebugLabel.Text = "Input: " .. action
     
     -- 4. APPLY PHYSICS
-    local att = currentSeat:FindFirstChild("J47_Att")
-    local thrust = currentSeat:FindFirstChild("J47_Thrust")
+    local att = currentSeat:FindFirstChild("J48_Att")
+    local thrust = currentSeat:FindFirstChild("J48_Thrust")
     
     if not att then
         att = Instance.new("Attachment", currentSeat)
-        att.Name = "J47_Att"
+        att.Name = "J48_Att"
     end
     
     if action == "GAS" then
         if not thrust then
             thrust = Instance.new("VectorForce", currentSeat)
-            thrust.Name = "J47_Thrust"
+            thrust.Name = "J48_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
@@ -294,7 +297,7 @@ RunService.Heartbeat:Connect(function()
     elseif action == "BRAKE" then
         if not thrust then
             thrust = Instance.new("VectorForce", currentSeat)
-            thrust.Name = "J47_Thrust"
+            thrust.Name = "J48_Thrust"
             thrust.Attachment0 = att
             thrust.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
         end
